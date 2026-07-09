@@ -1,670 +1,1299 @@
 /**
- * THE LIVING DIGITAL ECOSYSTEM — Canvas Animation Engine (engine.js)
- * Pixel-art theme rendering loop with interactive click regions (bench reflection), 
- * falling leaf sways, dynamic night skyline lights, winding path tracers, 
- * and day/night/weather shaders.
+ * LIVING WORLD ENGINE — Canvas Animation Engine (engine.js)
+ * Implements Device-Pixel-Ratio (DPR) retina scaling, procedural water systems (waterfall and river),
+ * flocking birds, wind-influenced cherry blossom petals, hovering butterflies, night-spawn fireflies,
+ * weather particle overlay, and real-time lighting system.
+ * Adds custom animals (fox, squirrel, koi fish), mist, splash particles, and river ripples.
  */
 
-class LivingEcosystem {
-    constructor(canvasId) {
-        this.canvas = document.getElementById(canvasId);
-        if (!this.canvas) return;
-        this.ctx = this.canvas.getContext('2d');
+class LivingWorldEngine {
+    constructor() {
+        this.baseImage = document.getElementById('base-image');
+        this.treeLeft = document.getElementById('tree-left-sway');
+        this.treeRight = document.getElementById('tree-right-sway');
         
-        // Settings & State
-        this.width = this.canvas.width = window.innerWidth;
-        this.height = this.canvas.height = window.innerHeight;
-        this.scrollPercent = 0;
-        this.activeBiome = 'forest'; // forest, river, mountain, sky, universe, cosmos
-        this.timeOfDay = 0.25; // 0.0 to 1.0 (0.25 = Morning, 0.5 = Noon, 0.75 = Sunset, 0.0/1.0 = Night)
-        this.targetTimeOfDay = 0.25;
-        this.weather = 'clear'; // clear, rain, snow, fog, storm
-        this.wind = 1.2;
-        this.targetWind = 1.2;
+        this.waterCanvas = document.getElementById('water-canvas');
+        this.physicsCanvas = document.getElementById('physics-canvas');
+        this.galaxyCanvas = document.getElementById('galaxy-canvas');
         
-        // Mouse Coordinates
-        this.mouseX = this.width / 2;
-        this.mouseY = this.height / 2;
-        this.targetMouseX = this.width / 2;
-        this.targetMouseY = this.height / 2;
+        this.wCtx = this.waterCanvas.getContext('2d');
+        this.pCtx = this.physicsCanvas.getContext('2d');
+        this.gCtx = this.galaxyCanvas.getContext('2d');
+        
+        this.dpr = window.devicePixelRatio || 1;
+        this.width = window.innerWidth;
+        this.height = window.innerHeight;
+        
+        // Environment state
+        this.windSpeed = 1.0;
+        this.targetWindSpeed = 1.0;
+        this.timeOfDay = 0.5; // 0.0 - 1.0
+        this.isNight = false;
+        this.weatherMode = 'clear'; // clear, rain, snow, fog, storm
+
+        // Season setting based on current month
+        const currentMonth = new Date().getMonth();
+        if (currentMonth >= 11 || currentMonth <= 1) {
+            this.season = 'WINTER';
+        } else if (currentMonth >= 2 && currentMonth <= 4) {
+            this.season = 'SPRING';
+        } else if (currentMonth >= 5 && currentMonth <= 7) {
+            this.season = 'SUMMER';
+        } else {
+            this.season = 'AUTUMN';
+        }
+
+        // Add season class to world element
+        const worldEl = document.getElementById('world');
+        if (worldEl) {
+            worldEl.classList.add(`season-${this.season.toLowerCase()}`);
+        }
+
+        this.rainbowAlpha = 0;
+        this.prevWeatherMode = 'clear';
+
+        // Initialize Climate Variables
+        this.temperature = 22;
+        this.targetTemperature = 22;
+        this.humidity = 45;
+        this.targetHumidity = 45;
+        this.pressure = 1018;
+        this.targetPressure = 1018;
+        this.climateTimer = 0;
+        this.riverRise = 0;
+        this.targetRiverRise = 0;
+
+        // Mascot cursor trails
+        this.mascotParticles = [];
+        this.mascotX = 0;
+        this.mascotY = 0;
+        
+        // Parallax coordinates
+        this.mouseX = 0;
+        this.mouseY = 0;
+        this.targetMouseX = 0;
+        this.targetMouseY = 0;
+        this.cursorActiveX = 0;
+        this.cursorActiveY = 0;
         this.mouseActive = false;
         
-        // Load Pixel Art Base Image (assets/naruto_nature.png)
-        this.bgImage = new Image();
-        this.bgImage.src = 'assets/naruto_nature.png';
-        this.bgLoaded = false;
-        this.bgImage.onload = () => {
-            this.bgLoaded = true;
-        };
-        
-        // Entity Pools
-        this.clouds = [];
-        this.stars = [];
+        // Entities pools
+        this.waterParticles = [];
+        this.splashParticles = [];
+        this.mistParticles = [];
+        this.ripples = [];
+        this.petals = [];
         this.birds = [];
         this.butterflies = [];
+        this.fireflies = [];
+        this.stars = [];
+        
+        // Wildlife animals
+        this.koi = null;
+        this.squirrel = null;
+        this.fox = null;
+        
+        // Weather entities
         this.rainDrops = [];
         this.snowFlakes = [];
-        this.leaves = [];
-        this.fireflies = [];
-        this.glowTrail = [];
-        this.pathTracers = []; // Traces path to the city
+        this.lightningFlash = 0;
+        this.galaxyRot = 0;
         
-        // Bench Coordinates (bounds mapped as ratios of canvas width/height)
-        this.benchXMin = 0.05;
-        this.benchXMax = 0.28;
-        this.benchYMin = 0.65;
-        this.benchYMax = 0.88;
-        this.benchHovered = false;
-
-        // City Window Coordinates (ratios mapped on the pixel-art skyline)
-        this.cityWindows = [
-            {x: 0.370, y: 0.590}, {x: 0.385, y: 0.582}, {x: 0.408, y: 0.585},
-            {x: 0.432, y: 0.586}, {x: 0.448, y: 0.575}, {x: 0.456, y: 0.590},
-            {x: 0.482, y: 0.580}, {x: 0.505, y: 0.582}, {x: 0.521, y: 0.570},
-            {x: 0.536, y: 0.588}, {x: 0.554, y: 0.580}, {x: 0.562, y: 0.590},
-            {x: 0.588, y: 0.582}, {x: 0.602, y: 0.588}, {x: 0.622, y: 0.580},
-            {x: 0.638, y: 0.585}
-        ];
-
-        // Path Bezier Control Points (Winding path to city)
-        this.pathPoints = {
-            p0: {x: 0.90, y: 0.85}, // Start (Meadow front right)
-            p1: {x: 0.70, y: 0.75}, // Control 1
-            p2: {x: 0.52, y: 0.66}, // Control 2
-            p3: {x: 0.50, y: 0.59}  // End (Skyline base)
-        };
-
+        this.lastTime = performance.now();
         this.init();
         this.bindEvents();
-        this.loop();
+        this.animate();
     }
-
+    
     init() {
-        // Setup initial clouds
-        for (let i = 0; i < 4; i++) {
-            this.clouds.push({
-                x: Math.random() * this.width,
-                y: Math.random() * (this.height * 0.25),
-                size: Math.random() * 50 + 30,
-                speed: Math.random() * 0.15 + 0.05,
-                opacity: Math.random() * 0.12 + 0.04
-            });
+        this.resize();
+        
+        // Populate static entities
+        this.initStars();
+        
+        // Initialize water particles (300 particles for dense waterfall & river)
+        for (let i = 0; i < 300; i++) {
+            const p = new WaterParticle(this.width, this.height);
+            p.y = Math.random() * this.height;
+            this.waterParticles.push(p);
         }
-
-        // Setup star field
-        for (let i = 0; i < 60; i++) {
-            this.stars.push({
-                x: Math.random() * this.width,
-                y: Math.random() * (this.height * 0.6),
-                radius: Math.random() * 1.5 + 0.5,
-                twinkleSpeed: Math.random() * 0.015 + 0.005,
-                phase: Math.random() * Math.PI
-            });
+        
+        // Initialize sakura petals
+        for (let i = 0; i < 150; i++) {
+            this.petals.push(new Petal(this.width, this.height));
         }
-
-        // Setup Boids (Birds flying near skyline)
+        
+        // Initialize flocking birds
+        for (let i = 0; i < 8; i++) {
+            this.birds.push(new Bird(this.width, this.height));
+        }
+        
+        // Initialize butterflies
         for (let i = 0; i < 6; i++) {
-            this.birds.push({
-                x: Math.random() * this.width,
-                y: this.height * 0.3 + (Math.random() - 0.5) * 80,
-                vx: Math.random() * 1.2 + 0.8,
-                vy: (Math.random() - 0.5) * 0.3,
-                wingPhase: Math.random() * Math.PI,
-                size: Math.random() * 2 + 1.5
-            });
+            this.butterflies.push(new Butterfly(this.width, this.height));
         }
-
-        // Setup Butterflies (meadow region)
-        for (let i = 0; i < 5; i++) {
-            this.butterflies.push({
-                x: this.width * (0.1 + Math.random() * 0.5),
-                y: this.height * (0.65 + Math.random() * 0.2),
-                vx: (Math.random() - 0.5) * 1.0,
-                vy: (Math.random() - 0.5) * 1.0,
-                color: `hsl(${Math.random() * 35 + 20}, 90%, 65%)`, // Warm colors matching meadow
-                size: Math.random() * 2 + 1.5,
-                phase: Math.random() * Math.PI
-            });
+        
+        // Initialize fireflies
+        for (let i = 0; i < 40; i++) {
+            this.fireflies.push(new Firefly(this.width, this.height));
         }
-
-        // Setup meadow fireflies
-        for (let i = 0; i < 15; i++) {
-            this.fireflies.push({
-                x: Math.random() * this.width,
-                y: this.height * (0.6 + Math.random() * 0.35),
-                vx: (Math.random() - 0.5) * 0.5,
-                vy: (Math.random() - 0.5) * 0.5,
-                radius: Math.random() * 1.8 + 0.8,
-                alpha: Math.random(),
-                pulseSpeed: Math.random() * 0.04 + 0.015
+        
+        // Initialize Wildlife
+        this.koi = new KoiFish(this.width, this.height);
+        this.squirrel = new Squirrel(this.width, this.height);
+        this.fox = new Fox(this.width, this.height);
+    }
+    
+    initStars() {
+        this.stars = [];
+        const count = 700;
+        for (let i = 0; i < count; i++) {
+            this.stars.push({
+                x: Math.random() * this.width * 2 - this.width / 2,
+                y: Math.random() * this.height * 2 - this.height / 2,
+                size: Math.random() * 1.5,
+                alpha: Math.random()
             });
         }
     }
-
+    
     bindEvents() {
-        window.addEventListener('resize', () => {
-            this.width = this.canvas.width = window.innerWidth;
-            this.height = this.canvas.height = window.innerHeight;
-        });
-
-        window.addEventListener('scroll', () => {
-            const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
-            this.scrollPercent = maxScroll > 0 ? window.scrollY / maxScroll : 0;
-            this.updateActiveBiome();
-        });
-
+        window.addEventListener('resize', () => this.resize());
+        
         window.addEventListener('mousemove', (e) => {
-            this.targetMouseX = e.clientX;
-            this.targetMouseY = e.clientY;
+            this.targetMouseX = (e.clientX / window.innerWidth) - 0.5;
+            this.targetMouseY = (e.clientY / window.innerHeight) - 0.5;
+            
+            this.cursorActiveX = e.clientX;
+            this.cursorActiveY = e.clientY;
             this.mouseActive = true;
             
-            // Check if mouse is hovering over the Wooden Bench
-            const mouseXRatio = e.clientX / this.width;
-            const mouseYRatio = e.clientY / this.height;
-            
-            if (mouseXRatio >= this.benchXMin && mouseXRatio <= this.benchXMax &&
-                mouseYRatio >= this.benchYMin && mouseYRatio <= this.benchYMax) {
-                if (!this.benchHovered) {
-                    this.benchHovered = true;
-                    document.body.style.cursor = 'pointer';
-                }
-            } else {
-                if (this.benchHovered) {
-                    this.benchHovered = false;
-                    document.body.style.cursor = 'default';
+            // Mouse hover ripples in river zones (Y: 72% to 98%)
+            if (this.cursorActiveY > this.height * 0.72 && this.cursorActiveY < this.height * 0.98) {
+                if (Math.random() < 0.18) {
+                    this.spawnRipple(this.cursorActiveX, this.cursorActiveY, 5, 0.8, 30);
                 }
             }
         });
-
+        
         window.addEventListener('mouseleave', () => {
             this.mouseActive = false;
-            if (this.benchHovered) {
-                this.benchHovered = false;
-                document.body.style.cursor = 'default';
-            }
         });
-
-        // Bench Click Interaction
-        window.addEventListener('click', (e) => {
-            const mouseXRatio = e.clientX / this.width;
-            const mouseYRatio = e.clientY / this.height;
-            
-            if (mouseXRatio >= this.benchXMin && mouseXRatio <= this.benchXMax &&
-                mouseYRatio >= this.benchYMin && mouseYRatio <= this.benchYMax) {
-                // Dispatch event that sits the user down on the bench
-                window.dispatchEvent(new CustomEvent('sitonbench'));
-            }
-        });
-    }
-
-    updateActiveBiome() {
-        const biomes = ['forest', 'river', 'mountain', 'sky', 'universe', 'cosmos'];
-        const segment = 1 / biomes.length;
-        const index = Math.min(Math.floor(this.scrollPercent / segment), biomes.length - 1);
-        const nextBiome = biomes[index];
         
-        if (nextBiome !== this.activeBiome) {
-            this.activeBiome = nextBiome;
-            window.dispatchEvent(new CustomEvent('biomechange', { detail: { biome: nextBiome } }));
-            
-            // Sync environment state based on active biome
-            if (nextBiome === 'universe') {
-                this.targetTimeOfDay = 0.0; // Night
-                this.targetWind = 0.4;
-            } else if (nextBiome === 'river') {
-                this.targetTimeOfDay = 0.5; // Noon
-                this.targetWind = 0.8;
-            } else if (nextBiome === 'cosmos') {
-                this.targetTimeOfDay = 0.05; // Night/Constellation twilight
-                this.targetWind = 1.6;
-            } else if (nextBiome === 'forest') {
-                this.targetTimeOfDay = 0.25; // Morning sunrise
-                this.targetWind = 1.0;
-            } else if (nextBiome === 'mountain') {
-                this.targetTimeOfDay = 0.75; // Sunset
-                this.targetWind = 2.4;
-            }
-        }
-    }
-
-    // Adjust environment settings manually via HUD
-    setTimeOfDay(timeVal) {
-        this.targetTimeOfDay = timeVal;
-    }
-
-    setWeather(weatherName) {
-        this.weather = weatherName;
-    }
-
-    update() {
-        // Smoothly interpolate time and wind values
-        this.timeOfDay += (this.targetTimeOfDay - this.timeOfDay) * 0.04;
-        this.wind += (this.targetWind - this.wind) * 0.02;
-
-        // Smooth cursor movement
-        this.mouseX += (this.targetMouseX - this.mouseX) * 0.1;
-        this.mouseY += (this.targetMouseY - this.mouseY) * 0.1;
-
-        // Maintain cursor light fairy trail
-        if (this.mouseActive) {
-            this.glowTrail.push({ x: this.mouseX, y: this.mouseY, life: 1.0 });
-        }
-        this.glowTrail.forEach(t => t.life -= 0.035);
-        this.glowTrail = this.glowTrail.filter(t => t.life > 0);
-
-        // Update clouds
-        this.clouds.forEach(c => {
-            c.x += c.speed * this.wind;
-            if (c.x > this.width + 100) {
-                c.x = -100;
-                c.y = Math.random() * (this.height * 0.25);
-            }
-        });
-
-        // Update birds
-        this.birds.forEach(b => {
-            b.x += b.vx * (this.wind * 0.4 + 0.6);
-            b.y += b.vy + Math.sin(b.wingPhase) * 0.15;
-            b.wingPhase += 0.15;
-            if (b.x > this.width + 50) {
-                b.x = -50;
-                b.y = this.height * 0.3 + (Math.random() - 0.5) * 80;
-            }
-        });
-
-        // Update butterflies
-        this.butterflies.forEach(bf => {
-            bf.phase += 0.07;
-            bf.x += bf.vx + Math.sin(bf.phase) * 0.3;
-            bf.y += bf.vy + Math.cos(bf.phase) * 0.3;
-
-            if (this.mouseActive) {
-                const dx = this.mouseX - bf.x;
-                const dy = this.mouseY - bf.y;
-                const dist = Math.sqrt(dx*dx + dy*dy);
-                if (dist < 80) {
-                    bf.vx -= (dx / dist) * 0.12;
-                    bf.vy -= (dy / dist) * 0.12;
-                } else if (dist < 250) {
-                    bf.vx += (dx / dist) * 0.03;
-                    bf.vy += (dy / dist) * 0.03;
+        // Handle file loading for background artwork
+        const upload = document.getElementById('image-upload');
+        if (upload) {
+            upload.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                        const url = `url('${event.target.result}')`;
+                        this.baseImage.style.backgroundImage = url;
+                        this.treeLeft.style.backgroundImage = url;
+                        this.treeRight.style.backgroundImage = url;
+                        
+                        const helpText = document.getElementById('help-text');
+                        if (helpText) helpText.style.display = 'none';
+                    };
+                    reader.readAsDataURL(file);
                 }
-            }
-
-            bf.vx = Math.max(Math.min(bf.vx, 1.2), -1.2);
-            bf.vy = Math.max(Math.min(bf.vy, 1.2), -1.2);
-
-            // Container bounds
-            if (bf.x < 20) bf.vx += 0.08;
-            if (bf.x > this.width - 20) bf.vx -= 0.08;
-            if (bf.y < this.height * 0.6) bf.vy += 0.08;
-            if (bf.y > this.height - 20) bf.vy -= 0.08;
-        });
-
-        // Update fireflies
-        this.fireflies.forEach(ff => {
-            ff.x += ff.vx;
-            ff.y += ff.vy;
-            ff.alpha += ff.pulseSpeed;
-            if (ff.x < 0 || ff.x > this.width) ff.vx *= -1;
-            if (ff.y < this.height * 0.5 || ff.y > this.height) ff.vy *= -1;
-        });
-
-        // Spawn falling leaves from the Oak Tree on the right (X: 70-95%, Y: 40-60%)
-        if (Math.random() < 0.02 * this.wind && this.activeBiome === 'forest') {
-            this.leaves.push({
-                x: this.width * (0.68 + Math.random() * 0.28),
-                y: this.height * (0.42 + Math.random() * 0.18),
-                size: Math.random() * 3 + 2,
-                speedY: Math.random() * 0.8 + 0.6,
-                oscSpeed: Math.random() * 0.04 + 0.015,
-                phase: Math.random() * Math.PI,
-                color: Math.random() < 0.25 ? '#ff8a50' : '#4caf50' // Mostly green, some orange leaves
             });
         }
-        this.leaves.forEach(lf => {
-            lf.y += lf.speedY;
-            lf.x -= (0.4 + Math.sin(lf.phase) * 0.7 + this.wind * 0.25);
-            lf.phase += lf.oscSpeed;
-        });
-        this.leaves = this.leaves.filter(lf => lf.y < this.height && lf.x > 0);
-
-        // Spawn winding path light tracers
-        if (Math.random() < 0.015) {
-            this.pathTracers.push({
-                t: 0.0,
-                speed: Math.random() * 0.002 + 0.0015,
-                size: Math.random() * 1.5 + 1.0,
-                alpha: 1.0
-            });
-        }
-        this.pathTracers.forEach(tr => {
-            tr.t += tr.speed;
-            tr.alpha = 1.0 - tr.t; // Fade out as it nears the city skyline
-        });
-        this.pathTracers = this.pathTracers.filter(tr => tr.t <= 1.0);
-
-        this.updateWeather();
     }
+    
+    resize() {
+        this.width = window.innerWidth;
+        this.height = window.innerHeight;
+        
+        [this.waterCanvas, this.physicsCanvas, this.galaxyCanvas].forEach(c => {
+            c.width = this.width * this.dpr;
+            c.height = this.height * this.dpr;
+            c.getContext('2d').setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
+        });
+        
+        this.initStars();
+        this.drawGalaxy();
+    }
+    
+    setWeather(mode) {
+        if ((this.weatherMode === 'rain' || this.weatherMode === 'storm') && mode === 'clear') {
+            this.rainbowAlpha = 1.0;
+        }
+        this.prevWeatherMode = this.weatherMode;
+        
+        this.weatherMode = mode;
+        this.rainDrops = [];
+        this.snowFlakes = [];
+        
+        const worldEl = document.getElementById('world');
+        if (worldEl) {
+            if (mode === 'rain' || mode === 'storm') {
+                worldEl.classList.add('wet-sheen');
+            } else {
+                worldEl.classList.remove('wet-sheen');
+            }
+        }
+        
+        if (mode === 'storm') {
+            this.targetWindSpeed = 4.2;
+            this.targetTemperature = 12;
+            this.targetHumidity = 98;
+            this.targetPressure = 988;
+            this.targetRiverRise = 8;
+        } else if (mode === 'rain') {
+            this.targetWindSpeed = 2.0;
+            this.targetTemperature = 14;
+            this.targetHumidity = 92;
+            this.targetPressure = 998;
+            this.targetRiverRise = 4;
+        } else if (mode === 'snow') {
+            this.targetWindSpeed = 1.2;
+            this.targetTemperature = -2;
+            this.targetHumidity = 85;
+            this.targetPressure = 1005;
+            this.targetRiverRise = 0;
+        } else if (mode === 'fog') {
+            this.targetWindSpeed = 0.5;
+            this.targetTemperature = 8;
+            this.targetHumidity = 96;
+            this.targetPressure = 1010;
+            this.targetRiverRise = 0;
+        } else { // clear
+            this.targetWindSpeed = 1.0;
+            this.targetTemperature = 22;
+            this.targetHumidity = 45;
+            this.targetPressure = 1018;
+            this.targetRiverRise = 0;
+        }
+    }
+    
+    setTimeOfDay(timeVal) {
+        this.timeOfDay = timeVal;
+        this.updateLighting();
+    }
+    
+    updateLighting() {
+        const atmosphere = document.getElementById('atmosphere');
+        const sunFlare = document.getElementById('sun-flare');
+        const phaseDisplay = document.getElementById('phase-display');
+        
+        if (!atmosphere || !sunFlare) return;
+        
+        const hour = this.timeOfDay * 24;
+        
+        if (hour >= 5 && hour < 8) {
+            if (phaseDisplay) phaseDisplay.innerText = "Dawn";
+            atmosphere.style.background = "linear-gradient(to bottom, rgba(255, 154, 158, 0.45) 0%, rgba(254, 207, 239, 0.3) 100%)";
+            atmosphere.style.opacity = "0.4";
+            sunFlare.style.background = "radial-gradient(circle, rgba(255, 235, 180, 0.5) 0%, transparent 60%)";
+            sunFlare.style.opacity = "0.7";
+            this.galaxyCanvas.style.opacity = "0";
+            this.isNight = false;
+        } 
+        else if (hour >= 8 && hour < 17) {
+            if (phaseDisplay) phaseDisplay.innerText = "Midday";
+            atmosphere.style.background = "transparent";
+            atmosphere.style.opacity = "0";
+            sunFlare.style.background = "radial-gradient(circle, rgba(255, 245, 200, 0.4) 0%, transparent 60%)";
+            sunFlare.style.opacity = "0.85";
+            this.galaxyCanvas.style.opacity = "0";
+            this.isNight = false;
+        } 
+        else if (hour >= 17 && hour < 19.5) {
+            if (phaseDisplay) phaseDisplay.innerText = "Dusk";
+            atmosphere.style.background = "linear-gradient(to bottom, rgba(255, 126, 95, 0.55), rgba(254, 180, 123, 0.4))";
+            atmosphere.style.opacity = "0.5";
+            sunFlare.style.background = "radial-gradient(circle, rgba(255, 100, 50, 0.6) 0%, transparent 60%)";
+            sunFlare.style.opacity = "0.95";
+            this.galaxyCanvas.style.opacity = "0.05";
+            this.isNight = false;
+        } 
+        else {
+            if (phaseDisplay) phaseDisplay.innerText = "Nightfall";
+            atmosphere.style.background = "rgba(5, 8, 20, 0.72)";
+            atmosphere.style.opacity = "0.75";
+            sunFlare.style.opacity = "0";
+            this.galaxyCanvas.style.opacity = "0.85";
+            this.isNight = true;
+        }
+    }
+    
+    drawGalaxy() {
+        this.gCtx.clearRect(0, 0, this.width, this.height);
+        this.gCtx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+        
+        this.stars.forEach(s => {
+            const twinkle = Math.sin(Date.now() * 0.002 + s.alpha * 100) * 0.3 + 0.7;
+            this.gCtx.globalAlpha = s.alpha * twinkle;
+            this.gCtx.beginPath();
+            this.gCtx.arc(s.x, s.y, s.size, 0, Math.PI * 2);
+            this.gCtx.fill();
+        });
+        this.gCtx.globalAlpha = 1.0;
+    }
+    
+    spawnRipple(x, y, size = 10, speed = 1, maxRadius = 45) {
+        this.ripples.push(new Ripple(x, y, size, speed, maxRadius));
+    }
+    
+    animate() {
+        const now = performance.now();
+        let dt = (now - this.lastTime) / 16.666;
+        if (dt > 3.0) dt = 3.0; // Clamp delta time to avoid physics explosion
+        this.lastTime = now;
 
-    updateWeather() {
-        if (this.weather === 'rain' || this.weather === 'storm') {
-            if (this.rainDrops.length < 100) {
-                this.rainDrops.push({
-                    x: Math.random() * this.width,
-                    y: -20,
-                    length: Math.random() * 15 + 10,
-                    speed: Math.random() * 7 + 10
+        this.windSpeed += (this.targetWindSpeed - this.windSpeed) * 0.03 * dt;
+        
+        // Easing climate parameters
+        this.temperature += (this.targetTemperature - this.temperature) * 0.005 * dt;
+        this.humidity += (this.targetHumidity - this.humidity) * 0.005 * dt;
+        this.pressure += (this.targetPressure - this.pressure) * 0.005 * dt;
+        this.riverRise += (this.targetRiverRise - this.riverRise) * 0.01 * dt;
+        
+        // Mascot spark coordinates tracking
+        if (this.mouseActive) {
+            if (this.mascotX === 0 && this.mascotY === 0) {
+                this.mascotX = this.cursorActiveX;
+                this.mascotY = this.cursorActiveY;
+            }
+            this.mascotX += (this.cursorActiveX - this.mascotX) * 0.12;
+            this.mascotY += (this.cursorActiveY - this.mascotY) * 0.12;
+            
+            if (Math.random() < 0.38) {
+                this.mascotParticles.push({
+                    x: this.mascotX + (Math.random() - 0.5) * 6,
+                    y: this.mascotY + (Math.random() - 0.5) * 6,
+                    vx: (Math.random() - 0.5) * 0.5,
+                    vy: -Math.random() * 0.6 - 0.2,
+                    size: Math.random() * 2 + 1.2,
+                    alpha: 1.0,
+                    color: `rgba(${230 + Math.round(Math.random() * 25)}, ${180 + Math.round(Math.random() * 50)}, 40, `
                 });
             }
         }
-        this.rainDrops.forEach(rd => {
-            rd.y += rd.speed;
-            rd.x += (this.wind * 0.6);
-            if (rd.y > this.height) {
-                rd.y = -20;
-                rd.x = Math.random() * this.width;
+        
+        // Climate barometer telemetry dispatch
+        this.climateTimer++;
+        if (this.climateTimer >= 60) {
+            this.climateTimer = 0;
+            // Introduce micro-fluctuations
+            const deltaTemp = (Math.random() - 0.5) * 0.2;
+            const deltaHumid = (Math.random() - 0.5) * 0.8;
+            const deltaPress = (Math.random() - 0.5) * 0.6;
+            
+            this.temperature = Math.max(-5, Math.min(38, this.temperature + deltaTemp));
+            this.humidity = Math.max(10, Math.min(100, this.humidity + deltaHumid));
+            this.pressure = Math.max(980, Math.min(1040, this.pressure + deltaPress));
+            
+            window.dispatchEvent(new CustomEvent('climateupdate', {
+                detail: {
+                    temp: Math.round(this.temperature),
+                    humid: Math.round(this.humidity),
+                    press: Math.round(this.pressure),
+                    season: this.season
+                }
+            }));
+        }
+
+        // Update CSS variables for wind sways dynamically
+        const swayDurLeft = 14 / this.windSpeed;
+        const swayDurRight = 11 / this.windSpeed;
+        const swayAngleLeft = 0.6 * this.windSpeed;
+        const swayAngleRight = -0.8 * this.windSpeed;
+        
+        document.documentElement.style.setProperty('--sway-duration-left', `${swayDurLeft}s`);
+        document.documentElement.style.setProperty('--sway-duration-right', `${swayDurRight}s`);
+        document.documentElement.style.setProperty('--sway-angle-left', `${swayAngleLeft}deg`);
+        document.documentElement.style.setProperty('--sway-angle-right', `${swayAngleRight}deg`);
+
+        this.mouseX += (this.targetMouseX - this.mouseX) * 0.08;
+        this.mouseY += (this.targetMouseY - this.mouseY) * 0.08;
+        
+        const tiltX = this.mouseX * 15;
+        const tiltY = this.mouseY * 15;
+        
+        const transformString = `scale(1.03) translate(${tiltX}px, ${tiltY}px)`;
+        this.baseImage.style.transform = transformString;
+        this.treeLeft.style.transform = `${transformString} rotate(0.4deg)`;
+        this.treeRight.style.transform = `${transformString} rotate(-0.5deg)`;
+        
+        if (this.isNight) {
+            this.galaxyRot += 0.015;
+            this.galaxyCanvas.style.transform = `scale(1.25) translate(${tiltX * 0.5}px, ${tiltY * 0.5}px) rotate(${this.galaxyRot}deg)`;
+        } else {
+            this.galaxyCanvas.style.transform = `scale(1.25) translate(${tiltX * 0.5}px, ${tiltY * 0.5}px)`;
+        }
+        
+        this.wCtx.clearRect(0, 0, this.width, this.height);
+        this.pCtx.clearRect(0, 0, this.width, this.height);
+        
+        this.wCtx.save();
+        this.wCtx.translate(tiltX * 0.9, tiltY * 0.9);
+        
+        this.pCtx.save();
+        this.pCtx.translate(tiltX * 1.0, tiltY * 1.0);
+        
+        // ripples
+        this.ripples.forEach((r, idx) => {
+            r.update(dt);
+            r.draw(this.wCtx);
+            if (r.alpha <= 0) this.ripples.splice(idx, 1);
+        });
+        
+        // Waterfall Base Splash & Mist triggers
+        const splashZoneY = this.height * 0.72;
+        
+        this.waterParticles.forEach(p => {
+            p.update(this.width, this.height, this.windSpeed, dt);
+            
+            if (p.isFall && p.y + p.vy * dt >= splashZoneY) {
+                if (Math.random() < 0.45) {
+                    this.splashParticles.push(new SplashParticle(p.x, splashZoneY));
+                }
+                if (Math.random() < 0.25) {
+                    this.mistParticles.push(new MistParticle(p.x, splashZoneY));
+                }
+                if (Math.random() < 0.08) {
+                    this.spawnRipple(p.x, splashZoneY, 4, 0.5, 24);
+                }
+            }
+            p.draw(this.wCtx);
+        });
+        
+        this.splashParticles.forEach((sp, idx) => {
+            sp.update(dt);
+            sp.draw(this.wCtx);
+            if (sp.alpha <= 0) this.splashParticles.splice(idx, 1);
+        });
+        
+        this.mistParticles.forEach((m, idx) => {
+            m.update(dt);
+            m.draw(this.wCtx);
+            if (m.alpha <= 0) this.mistParticles.splice(idx, 1);
+        });
+        
+        // Petals
+        this.petals.forEach(pt => {
+            pt.update(this.width, this.height, this.windSpeed, this.mouseX, dt);
+            pt.draw(this.pCtx, this.isNight, this.season);
+        });
+        
+        // Birds
+        this.birds.forEach(b => {
+            b.update(this.width, this.height, dt);
+            b.draw(this.pCtx, this.isNight);
+        });
+        
+        // Butterflies
+        if (!this.isNight) {
+            this.butterflies.forEach(bf => {
+                bf.update(this.width, this.height, this.cursorActiveX, this.cursorActiveY, dt);
+                bf.draw(this.pCtx);
+            });
+        }
+        
+        // Fireflies
+        if (this.isNight) {
+            this.fireflies.forEach(f => {
+                f.update(this.width, this.height, dt);
+                f.draw(this.pCtx);
+            });
+        }
+        
+        // Animals
+        if (this.koi) {
+            this.koi.update(this.width, this.height, (x, y) => {
+                this.spawnRipple(x, y, 6, 0.7, 45);
+                for (let i = 0; i < 8; i++) {
+                    this.splashParticles.push(new SplashParticle(x, y));
+                }
+            }, dt);
+            this.koi.draw(this.wCtx);
+        }
+        
+        if (this.squirrel) {
+            this.squirrel.update(this.width, this.height, dt);
+            this.squirrel.draw(this.pCtx);
+        }
+        
+        if (this.fox) {
+            this.fox.update(this.width, this.height, dt);
+            this.fox.draw(this.pCtx);
+        }
+        
+        // Draw Mascot Spark cursor trail
+        if (this.mouseActive) {
+            this.pCtx.save();
+            this.pCtx.beginPath();
+            this.pCtx.arc(this.mascotX, this.mascotY, 3.5, 0, Math.PI * 2);
+            this.pCtx.fillStyle = 'rgba(252, 211, 77, 0.9)';
+            this.pCtx.shadowBlur = 10;
+            this.pCtx.shadowColor = 'rgba(252, 211, 77, 1)';
+            this.pCtx.fill();
+            this.pCtx.restore();
+        }
+
+        this.mascotParticles.forEach((mp, idx) => {
+            mp.x += mp.vx * dt;
+            mp.y += mp.vy * dt;
+            mp.alpha -= 0.018 * dt;
+            
+            this.pCtx.beginPath();
+            this.pCtx.arc(mp.x, mp.y, mp.size, 0, Math.PI * 2);
+            this.pCtx.fillStyle = `${mp.color}${mp.alpha})`;
+            this.pCtx.fill();
+            
+            if (mp.alpha <= 0) {
+                this.mascotParticles.splice(idx, 1);
             }
         });
-
-        if (this.weather === 'snow') {
-            if (this.snowFlakes.length < 60) {
+        
+        this.drawWeather();
+        
+        this.wCtx.restore();
+        this.pCtx.restore();
+        
+        requestAnimationFrame(() => this.animate());
+    }
+    
+    drawWeather() {
+        if (this.weatherMode === 'rain' || this.weatherMode === 'storm') {
+            this.pCtx.strokeStyle = 'rgba(174, 207, 238, 0.45)';
+            this.pCtx.lineWidth = 1.2;
+            
+            if (this.rainDrops.length < 150) {
+                this.rainDrops.push({
+                    x: Math.random() * this.width * 1.5 - this.width * 0.25,
+                    y: -20,
+                    length: Math.random() * 20 + 12,
+                    speed: Math.random() * 8 + 12
+                });
+            }
+            
+            this.rainDrops.forEach(rd => {
+                rd.y += rd.speed;
+                rd.x += this.windSpeed * 1.5;
+                
+                this.pCtx.beginPath();
+                this.pCtx.moveTo(rd.x, rd.y);
+                this.pCtx.lineTo(rd.x + (this.windSpeed * 0.4), rd.y + rd.length);
+                this.pCtx.stroke();
+                
+                if (rd.y > this.height * 0.72 && rd.y < this.height && Math.random() < 0.08) {
+                    this.spawnRipple(rd.x, rd.y, 2, 0.6, 12);
+                }
+                
+                if (rd.y > this.height) {
+                    rd.y = -20;
+                    rd.x = Math.random() * this.width * 1.5 - this.width * 0.25;
+                }
+            });
+            
+            if (this.weatherMode === 'storm') {
+                if (this.lightningFlash > 0) {
+                    this.lightningFlash -= 0.05;
+                    this.pCtx.fillStyle = `rgba(255, 255, 255, ${this.lightningFlash * 0.7})`;
+                    this.pCtx.fillRect(0, 0, this.width, this.height);
+                } else if (Math.random() < 0.003) {
+                    this.lightningFlash = 1.0;
+                    window.dispatchEvent(new CustomEvent('lightning'));
+                }
+            }
+        } 
+        
+        else if (this.weatherMode === 'snow') {
+            this.pCtx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+            
+            if (this.snowFlakes.length < 80) {
                 this.snowFlakes.push({
                     x: Math.random() * this.width,
                     y: -10,
-                    radius: Math.random() * 1.8 + 0.8,
+                    size: Math.random() * 2.5 + 1.0,
                     speed: Math.random() * 0.8 + 0.6,
-                    drift: Math.random() * 0.4 - 0.2
+                    osc: Math.random() * 100,
+                    oscSpeed: Math.random() * 0.02 + 0.01
                 });
             }
-        }
-        this.snowFlakes.forEach(sf => {
-            sf.y += sf.speed;
-            sf.x += sf.drift + (this.wind * 0.1);
-            if (sf.y > this.height) {
-                sf.y = -10;
-                sf.x = Math.random() * this.width;
-            }
-        });
-    }
-
-    // Bezier curve calculations for path tracing
-    getBezierPoint(p0, p1, p2, p3, t) {
-        const cx = 3 * (p1.x - p0.x);
-        const bx = 3 * (p2.x - p1.x) - cx;
-        const ax = p3.x - p0.x - cx - bx;
-
-        const cy = 3 * (p1.y - p0.y);
-        const by = 3 * (p2.y - p1.y) - cy;
-        const ay = p3.y - p0.y - cy - by;
-
-        const x = (ax * Math.pow(t, 3)) + (bx * Math.pow(t, 2)) + (cx * t) + p0.x;
-        const y = (ay * Math.pow(t, 3)) + (by * Math.pow(t, 2)) + (cy * t) + p0.y;
-
-        return { x: x * this.width, y: y * this.height };
-    }
-
-    draw() {
-        this.ctx.clearRect(0, 0, this.width, this.height);
-
-        // 1. Draw base pixel-art nature image backplane
-        if (this.bgLoaded) {
-            // Apply parallax scroll panning
-            const yShift = this.scrollPercent * 80;
-            this.ctx.drawImage(this.bgImage, 0, -yShift, this.width, this.height + 80);
-        } else {
-            // Fallback sky fill if image is loading
-            this.ctx.fillStyle = '#1e88e5';
-            this.ctx.fillRect(0, 0, this.width, this.height);
-        }
-
-        // 2. Night Twilight Shader & Stars Overlay
-        if (this.timeOfDay < 0.25 || this.timeOfDay > 0.75) {
-            let opacity = 0;
-            if (this.timeOfDay < 0.15 || this.timeOfDay > 0.85) opacity = 0.55;
-            else if (this.timeOfDay < 0.25) opacity = (0.25 - this.timeOfDay) / 0.1 * 0.55;
-            else opacity = (this.timeOfDay - 0.75) / 0.1 * 0.55;
-
-            // Apply blue-black twilight filter
-            this.ctx.fillStyle = `rgba(8, 8, 20, ${opacity})`;
-            this.ctx.fillRect(0, 0, this.width, this.height);
-
-            // Draw twinkling stars
-            this.ctx.save();
-            this.ctx.globalAlpha = opacity * 1.5;
-            this.stars.forEach(st => {
-                const twinkleVal = Math.sin(Date.now() * st.twinkleSpeed + st.phase) * 0.4 + 0.6;
-                this.ctx.beginPath();
-                this.ctx.arc(st.x, st.y, st.radius, 0, Math.PI * 2);
-                this.ctx.fillStyle = `rgba(255, 255, 255, ${twinkleVal})`;
-                this.ctx.fill();
-            });
-            this.ctx.restore();
-        }
-
-        // 3. Draw City Window Lights (Blinking at night)
-        if (this.timeOfDay < 0.22 || this.timeOfDay > 0.78) {
-            let lightsAlpha = 0;
-            if (this.timeOfDay < 0.15 || this.timeOfDay > 0.85) lightsAlpha = 1.0;
-            else if (this.timeOfDay < 0.22) lightsAlpha = (0.22 - this.timeOfDay) / 0.07;
-            else lightsAlpha = (this.timeOfDay - 0.78) / 0.07;
-
-            this.ctx.save();
-            this.ctx.globalAlpha = lightsAlpha;
-            this.cityWindows.forEach(win => {
-                const blink = Math.random() < 0.02 ? Math.random() * 0.4 + 0.2 : 0.95;
-                this.ctx.fillStyle = `rgba(255, 235, 120, ${blink})`;
-                // Compensate skyline shift for scroll parallax
-                const yShift = this.scrollPercent * 80 * 0.5; 
-                this.ctx.fillRect(win.x * this.width, win.y * this.height - yShift, 2, 2);
-            });
-            this.ctx.restore();
-        }
-
-        // 4. Draw bench highlight ring (if hovered)
-        if (this.benchHovered) {
-            this.ctx.save();
-            this.ctx.strokeStyle = 'rgba(16, 185, 129, 0.4)';
-            this.ctx.lineWidth = 2;
-            this.ctx.setLineDash([4, 4]);
             
-            // Draw bounds ellipse around bench location
-            const bx = this.width * (this.benchXMin + this.benchXMax) / 2;
-            const by = this.height * (this.benchYMin + this.benchYMax) / 2 - (this.scrollPercent * 80);
-            const rx = this.width * (this.benchXMax - this.benchXMin) / 2;
-            const ry = this.height * (this.benchYMax - this.benchYMin) / 3;
-
-            this.ctx.beginPath();
-            this.ctx.ellipse(bx, by, rx, ry, 0, 0, Math.PI * 2);
-            this.ctx.stroke();
-            this.ctx.restore();
-        }
-
-        // 5. Draw drifting Clouds
-        this.ctx.save();
-        this.clouds.forEach(c => {
-            this.ctx.beginPath();
-            this.ctx.arc(c.x, c.y, c.size, 0, Math.PI * 2);
-            this.ctx.arc(c.x + c.size * 0.6, c.y - c.size * 0.2, c.size * 0.8, 0, Math.PI * 2);
-            this.ctx.arc(c.x - c.size * 0.5, c.y + c.size * 0.1, c.size * 0.7, 0, Math.PI * 2);
-            this.ctx.fillStyle = `rgba(240, 244, 255, ${c.opacity})`;
-            this.ctx.fill();
-        });
-        this.ctx.restore();
-
-        // 6. Draw path glow tracers
-        this.ctx.save();
-        this.pathTracers.forEach(tr => {
-            const p = this.getBezierPoint(this.pathPoints.p0, this.pathPoints.p1, this.pathPoints.p2, this.pathPoints.p3, tr.t);
-            // Draw small pixelated fairy light
-            const yShift = this.scrollPercent * 80;
-            
-            const radial = this.ctx.createRadialGradient(p.x, p.y - yShift, 0, p.x, p.y - yShift, tr.size * 4);
-            radial.addColorStop(0, `rgba(16, 185, 129, ${tr.alpha})`);
-            radial.addColorStop(1, 'rgba(16, 185, 129, 0)');
-            
-            this.ctx.fillStyle = radial;
-            this.ctx.beginPath();
-            this.ctx.arc(p.x, p.y - yShift, tr.size * 4, 0, Math.PI * 2);
-            this.ctx.fill();
-        });
-        this.ctx.restore();
-
-        // 7. Draw Fauna & Particles (Birds, butterflies, fireflies, and leaves)
-        this.drawFaunaAndParticles();
-
-        // 8. Draw Weather layers (Rain, snow, fog)
-        this.drawWeatherEffects();
-
-        // 9. Draw cursor glow trail
-        this.drawCursorTrail();
-    }
-
-    drawFaunaAndParticles() {
-        const yShift = this.scrollPercent * 80;
-
-        // Draw Birds
-        this.ctx.save();
-        this.ctx.strokeStyle = 'rgba(25, 40, 30, 0.4)';
-        this.ctx.lineWidth = 1.2;
-        this.birds.forEach(b => {
-            const wingH = Math.sin(b.wingPhase) * b.size;
-            this.ctx.beginPath();
-            this.ctx.moveTo(b.x - b.size * 2, b.y - wingH - yShift * 0.7);
-            this.ctx.lineTo(b.x, b.y - yShift * 0.7);
-            this.ctx.lineTo(b.x + b.size * 2, b.y - wingH - yShift * 0.7);
-            this.ctx.stroke();
-        });
-        this.ctx.restore();
-
-        // Draw Butterflies
-        this.ctx.save();
-        this.butterflies.forEach(bf => {
-            this.ctx.fillStyle = bf.color;
-            this.ctx.save();
-            this.ctx.translate(bf.x, bf.y - yShift);
-            
-            const wingScale = Math.abs(Math.sin(bf.phase * 2)) * 0.8 + 0.2;
-            
-            this.ctx.beginPath();
-            this.ctx.ellipse(-2, 0, bf.size, bf.size * 1.3 * wingScale, -Math.PI/6, 0, Math.PI * 2);
-            this.ctx.fill();
-            
-            this.ctx.beginPath();
-            this.ctx.ellipse(2, 0, bf.size, bf.size * 1.3 * wingScale, Math.PI/6, 0, Math.PI * 2);
-            this.ctx.fill();
-            
-            this.ctx.restore();
-        });
-        this.ctx.restore();
-
-        // Draw Fireflies
-        this.ctx.save();
-        this.fireflies.forEach(ff => {
-            const alpha = Math.abs(Math.sin(ff.alpha)) * 0.5 + 0.1;
-            const radial = this.ctx.createRadialGradient(ff.x, ff.y - yShift, 0, ff.x, ff.y - yShift, ff.radius * 4);
-            radial.addColorStop(0, `rgba(255, 220, 100, ${alpha})`);
-            radial.addColorStop(1, 'rgba(255, 220, 100, 0)');
-            
-            this.ctx.fillStyle = radial;
-            this.ctx.beginPath();
-            this.ctx.arc(ff.x, ff.y - yShift, ff.radius * 4, 0, Math.PI * 2);
-            this.ctx.fill();
-        });
-        this.ctx.restore();
-
-        // Draw Falling Leaves
-        this.ctx.save();
-        this.leaves.forEach(lf => {
-            this.ctx.fillStyle = lf.color;
-            // Draw tiny rectangular pixelated leaves
-            this.ctx.fillRect(lf.x, lf.y - yShift, lf.size, lf.size);
-        });
-        this.ctx.restore();
-    }
-
-    drawWeatherEffects() {
-        this.ctx.save();
-        
-        if (this.weather === 'rain' || this.weather === 'storm') {
-            this.ctx.strokeStyle = 'rgba(174, 207, 238, 0.35)';
-            this.ctx.lineWidth = 1.0;
-            this.rainDrops.forEach(rd => {
-                this.ctx.beginPath();
-                this.ctx.moveTo(rd.x, rd.y);
-                this.ctx.lineTo(rd.x + (this.wind * 0.25), rd.y + rd.length);
-                this.ctx.stroke();
-            });
-
-            if (this.weather === 'storm' && Math.random() < 0.004) {
-                this.ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
-                this.ctx.fillRect(0, 0, this.width, this.height);
-                window.dispatchEvent(new CustomEvent('lightning'));
-            }
-        }
-
-        if (this.weather === 'snow') {
-            this.ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
             this.snowFlakes.forEach(sf => {
-                this.ctx.beginPath();
-                this.ctx.arc(sf.x, sf.y, sf.radius, 0, Math.PI * 2);
-                this.ctx.fill();
+                sf.osc += sf.oscSpeed;
+                sf.y += sf.speed;
+                sf.x += Math.sin(sf.osc) * 0.6 + this.windSpeed * 0.2;
+                
+                this.pCtx.beginPath();
+                this.pCtx.arc(sf.x, sf.y, sf.size, 0, Math.PI * 2);
+                this.pCtx.fill();
+                
+                if (sf.y > this.height) {
+                    sf.y = -10;
+                    sf.x = Math.random() * this.width;
+                }
             });
-        }
-
-        if (this.weather === 'fog') {
-            const fog = this.ctx.createLinearGradient(0, this.height * 0.4, 0, this.height);
-            fog.addColorStop(0, 'rgba(240, 242, 250, 0)');
-            fog.addColorStop(1, 'rgba(220, 222, 235, 0.4)');
-            this.ctx.fillStyle = fog;
-            this.ctx.fillRect(0, this.height * 0.4, this.width, this.height * 0.6);
-        }
-
-        this.ctx.restore();
-    }
-
-    drawCursorTrail() {
-        if (this.glowTrail.length < 2) return;
-        this.ctx.save();
+        } 
         
-        this.ctx.beginPath();
-        this.ctx.moveTo(this.glowTrail[0].x, this.glowTrail[0].y);
-        for (let i = 1; i < this.glowTrail.length; i++) {
-            const xc = (this.glowTrail[i].x + this.glowTrail[i-1].x) / 2;
-            const yc = (this.glowTrail[i].y + this.glowTrail[i-1].y) / 2;
-            this.ctx.quadraticCurveTo(this.glowTrail[i-1].x, this.glowTrail[i-1].y, xc, yc);
+        else if (this.weatherMode === 'fog') {
+            const fog = this.pCtx.createLinearGradient(0, this.height * 0.35, 0, this.height);
+            fog.addColorStop(0, 'rgba(230, 232, 245, 0)');
+            fog.addColorStop(0.5, 'rgba(220, 222, 238, 0.15)');
+            fog.addColorStop(1, 'rgba(210, 212, 230, 0.45)');
+            
+            this.pCtx.fillStyle = fog;
+            this.pCtx.fillRect(0, this.height * 0.35, this.width, this.height * 0.65);
         }
 
-        const trailGrad = this.ctx.createLinearGradient(this.mouseX, this.mouseY, this.glowTrail[0].x, this.glowTrail[0].y);
-        trailGrad.addColorStop(0, 'rgba(16, 185, 129, 0.7)'); // green trail
-        trailGrad.addColorStop(1, 'rgba(255, 107, 53, 0)');  // fades to warm orange
-        
-        this.ctx.strokeStyle = trailGrad;
-        this.ctx.lineWidth = 3;
-        this.ctx.lineCap = 'round';
-        this.ctx.stroke();
-
-        // Cursor head glow
-        const glow = this.ctx.createRadialGradient(this.mouseX, this.mouseY, 0, this.mouseX, this.mouseY, 12);
-        glow.addColorStop(0, '#fff');
-        glow.addColorStop(0.3, 'rgba(16, 185, 129, 0.8)');
-        glow.addColorStop(1, 'rgba(16, 185, 129, 0)');
-        this.ctx.fillStyle = glow;
-        this.ctx.beginPath();
-        this.ctx.arc(this.mouseX, this.mouseY, 12, 0, Math.PI * 2);
-        this.ctx.fill();
-
-        this.ctx.restore();
-    }
-
-    loop() {
-        this.update();
-        this.draw();
-        requestAnimationFrame(() => this.loop());
+        // Draw post-rain Rainbow arc
+        if (this.rainbowAlpha > 0) {
+            this.rainbowAlpha -= 0.0008 * dt;
+            if (this.rainbowAlpha < 0) this.rainbowAlpha = 0;
+            
+            if (this.rainbowAlpha > 0) {
+                this.pCtx.save();
+                const centerX = this.width * 0.5;
+                const centerY = this.height * 1.5;
+                const innerRadius = this.height * 0.95;
+                const outerRadius = this.height * 1.15;
+                
+                const grad = this.pCtx.createRadialGradient(centerX, centerY, innerRadius, centerX, centerY, outerRadius);
+                grad.addColorStop(0, `rgba(255, 99, 99, ${this.rainbowAlpha * 0.18})`);
+                grad.addColorStop(0.18, `rgba(255, 175, 75, ${this.rainbowAlpha * 0.18})`);
+                grad.addColorStop(0.36, `rgba(255, 255, 100, ${this.rainbowAlpha * 0.18})`);
+                grad.addColorStop(0.54, `rgba(100, 255, 100, ${this.rainbowAlpha * 0.18})`);
+                grad.addColorStop(0.72, `rgba(100, 150, 255, ${this.rainbowAlpha * 0.18})`);
+                grad.addColorStop(0.9, `rgba(180, 100, 255, ${this.rainbowAlpha * 0.12})`);
+                grad.addColorStop(1.0, `rgba(255, 255, 255, 0)`);
+                
+                this.pCtx.fillStyle = grad;
+                this.pCtx.beginPath();
+                this.pCtx.arc(centerX, centerY, outerRadius, Math.PI, 2 * Math.PI);
+                this.pCtx.arc(centerX, centerY, innerRadius, 2 * Math.PI, Math.PI, true);
+                this.pCtx.closePath();
+                this.pCtx.fill();
+                this.pCtx.restore();
+                
+                // Spawn rising steam particles from river mist
+                if (Math.random() < 0.15 * dt) {
+                    const steamX = this.width * 0.35 + Math.random() * (this.width * 0.25);
+                    const steamY = this.height * 0.76 + Math.random() * (this.height * 0.15);
+                    this.mistParticles.push(new MistParticle(steamX, steamY));
+                }
+            }
+        }
     }
 }
 
-// Instantiate ecosystem when DOM loads
+// Waterfall Water Particle
+class WaterParticle {
+    constructor(w, h) {
+        this.w = w;
+        this.h = h;
+        this.init();
+    }
+    
+    init() {
+        this.isFall = Math.random() > 0.3;
+        this.isFoam = Math.random() < 0.22;
+        
+        if (this.isFall) {
+            this.x = this.w * 0.285 + Math.random() * (this.w * 0.04);
+            this.y = this.h * 0.35 + Math.random() * (this.h * 0.08);
+            this.vy = Math.random() * 5 + 4;
+            this.vx = (Math.random() - 0.5) * 0.18;
+            this.length = Math.random() * 22 + 10;
+            this.alpha = Math.random() * 0.45 + 0.15;
+        } else {
+            this.progress = 0;
+            this.curveSpeed = Math.random() * 0.004 + 0.0015;
+            this.offsetY = (Math.random() - 0.5) * (this.h * 0.04);
+            this.length = Math.random() * 12 + 6;
+            this.alpha = Math.random() * 0.35 + 0.05;
+            this.updateRiverPosition();
+        }
+    }
+    
+    updateRiverPosition() {
+        const p0 = { x: this.w * 0.30, y: this.h * 0.72 };
+        const p1 = { x: this.w * 0.46, y: this.h * 0.86 };
+        const p2 = { x: this.w * 0.62, y: this.h * 1.05 };
+        
+        const t = this.progress;
+        const u = 1 - t;
+        const tt = t * t;
+        const uu = u * u;
+        
+        const rise = (window.worldEngine ? window.worldEngine.riverRise : 0);
+        this.x = uu * p0.x + 2 * u * t * p1.x + tt * p2.x;
+        this.y = uu * p0.y + 2 * u * t * p1.y + tt * p2.y + this.offsetY - rise;
+    }
+    
+    update(w, h, wind, dt = 1) {
+        this.w = w;
+        this.h = h;
+        
+        if (this.isFall) {
+            this.x += this.vx * dt;
+            this.y += this.vy * dt;
+            
+            if (this.y > this.h * 0.72) {
+                this.isFall = false;
+                this.progress = 0;
+                this.length = 6;
+            }
+        } else {
+            this.progress += this.curveSpeed * (wind * 0.2 + 0.8) * dt;
+            this.updateRiverPosition();
+            
+            if (this.progress > 1.0) {
+                this.init();
+            }
+        }
+    }
+    
+    draw(ctx) {
+        ctx.beginPath();
+        if (this.isFall) {
+            ctx.strokeStyle = `rgba(230, 245, 255, ${this.alpha})`;
+            ctx.lineWidth = 1.8;
+            ctx.moveTo(this.x, this.y);
+            ctx.lineTo(this.x, this.y - this.length);
+        } else {
+            ctx.strokeStyle = this.isFoam ? `rgba(255, 255, 255, ${this.alpha * 1.25})` : `rgba(165, 218, 255, ${this.alpha})`;
+            ctx.lineWidth = this.isFoam ? 1.6 : 1.1;
+            ctx.moveTo(this.x, this.y);
+            ctx.lineTo(this.x - (this.length * 1.8), this.y - (this.length * 0.45));
+        }
+        ctx.stroke();
+    }
+}
+
+// Splash
+class SplashParticle {
+    constructor(x, y) {
+        this.x = x;
+        this.y = y;
+        this.vx = (Math.random() - 0.5) * 3;
+        this.vy = -Math.random() * 3.5 - 1.5;
+        this.gravity = 0.18;
+        this.size = Math.random() * 2 + 1;
+        this.alpha = Math.random() * 0.8 + 0.2;
+    }
+    update(dt = 1) {
+        this.vy += this.gravity * dt;
+        this.x += this.vx * dt;
+        this.y += this.vy * dt;
+        this.alpha -= 0.025 * dt;
+    }
+    draw(ctx) {
+        ctx.fillStyle = `rgba(240, 248, 255, ${this.alpha})`;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+        ctx.fill();
+    }
+}
+
+// Mist
+class MistParticle {
+    constructor(x, y) {
+        this.x = x + (Math.random() - 0.5) * 45;
+        this.y = y + (Math.random() - 0.5) * 15;
+        this.vx = (Math.random() - 0.5) * 0.4;
+        this.vy = -Math.random() * 0.4 - 0.2;
+        this.size = Math.random() * 12 + 8;
+        this.alpha = Math.random() * 0.2 + 0.05;
+    }
+    update(dt = 1) {
+        this.x += this.vx * dt;
+        this.y += this.vy * dt;
+        this.alpha -= 0.0022 * dt;
+        this.size += 0.06 * dt;
+    }
+    draw(ctx) {
+        ctx.fillStyle = `rgba(240, 245, 255, ${this.alpha})`;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+        ctx.fill();
+    }
+}
+
+// Ripple
+class Ripple {
+    constructor(x, y, size = 10, speed = 1, maxRadius = 45) {
+        this.x = x;
+        this.y = y;
+        this.radius = size;
+        this.speed = speed;
+        this.maxRadius = maxRadius;
+        this.alpha = 1.0;
+    }
+    update(dt = 1) {
+        this.radius += this.speed * dt;
+        this.alpha = 1 - (this.radius / this.maxRadius);
+    }
+    draw(ctx) {
+        ctx.beginPath();
+        ctx.strokeStyle = `rgba(230, 245, 255, ${this.alpha * 0.35})`;
+        ctx.lineWidth = 1.2;
+        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+        ctx.stroke();
+    }
+}
+
+// Sakura Petal
+class Petal {
+    constructor(w, h) {
+        this.w = w;
+        this.h = h;
+        this.reset();
+        this.y = Math.random() * this.h;
+    }
+    
+    reset() {
+        this.x = Math.random() * this.w * 1.2;
+        this.y = -20;
+        this.size = Math.random() * 4 + 2.2;
+        this.baseVx = - (Math.random() * 1.3 + 0.6);
+        this.vy = Math.random() * 0.8 + 0.5;
+        this.angle = Math.random() * Math.PI * 2;
+        this.spin = (Math.random() - 0.5) * 0.06;
+        this.osc = Math.random() * 100;
+        this.oscSpeed = Math.random() * 0.02 + 0.01;
+        this.isFlower = Math.random() < 0.15;
+    }
+    
+    update(w, h, wind, mouseX, dt = 1) {
+        this.w = w;
+        this.h = h;
+        
+        this.osc += this.oscSpeed * dt;
+        this.x += ((this.baseVx * wind) + Math.sin(this.osc) * 1.2 - (mouseX * 2)) * dt;
+        this.y += this.vy * (wind * 0.2 + 0.8) * dt;
+        this.angle += this.spin * dt;
+        
+        if (this.y > this.h + 20 || this.x < -20 || this.x > this.w + 20) {
+            this.reset();
+        }
+    }
+    
+    draw(ctx, isNight, season) {
+        ctx.save();
+        ctx.translate(this.x, this.y);
+        ctx.rotate(this.angle);
+        
+        let baseColor = isNight ? 'rgba(170, 100, 140, 0.7)' : 'rgba(240, 175, 200, 0.9)';
+        if (season === 'AUTUMN') {
+            baseColor = isNight ? 'rgba(160, 60, 20, 0.75)' : 'rgba(225, 105, 25, 0.9)';
+        } else if (season === 'SUMMER') {
+            baseColor = isNight ? 'rgba(40, 120, 60, 0.75)' : 'rgba(85, 190, 75, 0.9)';
+        } else if (season === 'WINTER') {
+            baseColor = 'rgba(220, 240, 255, 0.85)';
+        }
+        
+        if (this.isFlower && season === 'SPRING') {
+            ctx.fillStyle = baseColor;
+            for (let i = 0; i < 5; i++) {
+                ctx.save();
+                ctx.rotate((i * Math.PI * 2) / 5);
+                ctx.beginPath();
+                ctx.ellipse(0, this.size * 0.75, this.size * 0.5, this.size * 0.85, 0, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+            ctx.fillStyle = isNight ? '#eab308' : '#facc15';
+            ctx.beginPath();
+            ctx.arc(0, 0, this.size * 0.35, 0, Math.PI * 2);
+            ctx.fill();
+        } else {
+            ctx.fillStyle = baseColor;
+            ctx.beginPath();
+            ctx.moveTo(0, -this.size / 2);
+            ctx.bezierCurveTo(this.size, -this.size / 2, this.size, this.size / 2, 0, this.size / 2);
+            ctx.bezierCurveTo(-this.size, this.size / 2, -this.size, -this.size / 2, 0, -this.size / 2);
+            ctx.fill();
+        }
+        ctx.restore();
+    }
+}
+
+// Flocking Bird
+class Bird {
+    constructor(w, h) {
+        this.w = w;
+        this.h = h;
+        this.reset();
+        this.x = Math.random() * this.w;
+    }
+    
+    reset() {
+        this.x = -50;
+        this.y = Math.random() * (this.h * 0.28) + (this.h * 0.08);
+        this.size = Math.random() * 1.8 + 1.2;
+        this.speed = Math.random() * 1.1 + 0.6;
+        this.flap = Math.random() * Math.PI * 2;
+        this.yOffset = Math.random() * 100;
+    }
+    
+    update(w, h, dt = 1) {
+        this.w = w;
+        this.h = h;
+        
+        this.x += this.speed * dt;
+        this.y += Math.sin(this.x * 0.008 + this.yOffset) * 0.22 * dt;
+        this.flap += 0.14 * this.speed * dt;
+        
+        if (this.x > this.w + 50) {
+             this.reset();
+        }
+    }
+    
+    draw(ctx, isNight) {
+        ctx.save();
+        ctx.translate(this.x, this.y);
+        ctx.strokeStyle = isNight ? 'rgba(12, 12, 25, 0.85)' : 'rgba(38, 42, 48, 0.8)';
+        ctx.lineWidth = 1.5;
+        
+        const wingY = Math.sin(this.flap) * this.size * 1.5;
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.quadraticCurveTo(-this.size, -wingY, -this.size * 2, -wingY * 0.5);
+        ctx.moveTo(0, 0);
+        ctx.quadraticCurveTo(this.size, -wingY, this.size * 2, -wingY * 0.5);
+        ctx.stroke();
+        ctx.restore();
+    }
+}
+
+// Butterfly
+class Butterfly {
+    constructor(w, h) {
+        this.w = w;
+        this.h = h;
+        this.reset();
+        this.x = Math.random() * this.w * 0.6 + this.w * 0.3;
+        this.y = Math.random() * this.h * 0.3 + this.h * 0.65;
+    }
+    
+    reset() {
+        this.x = Math.random() * this.w;
+        this.y = this.h * 0.7 + Math.random() * (this.h * 0.2);
+        this.vx = (Math.random() - 0.5) * 0.8;
+        this.vy = (Math.random() - 0.5) * 0.8;
+        this.size = Math.random() * 1.6 + 1.2;
+        this.phase = Math.random() * Math.PI * 2;
+        this.color = `hsl(${Math.random() * 30 + 15}, 90%, 75%)`;
+    }
+    
+    update(w, h, mX, mY, dt = 1) {
+        this.w = w;
+        this.h = h;
+        
+        this.phase += 0.08 * dt;
+        this.x += (this.vx + Math.sin(this.phase) * 0.4) * dt;
+        this.y += (this.vy + Math.cos(this.phase) * 0.4) * dt;
+        
+        const dx = mX - this.x;
+        const dy = mY - this.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        
+        if (dist < 100) {
+            this.vx -= (dx / dist) * 0.15 * dt;
+            this.vy -= (dy / dist) * 0.15 * dt;
+        } else {
+            this.vx += (Math.random() - 0.5) * 0.08 * dt;
+            this.vy += (Math.random() - 0.5) * 0.08 * dt;
+        }
+        
+        this.vx = Math.max(Math.min(this.vx, 1.4), -1.4);
+        this.vy = Math.max(Math.min(this.vy, 1.4), -1.4);
+        
+        if (this.x < this.w * 0.1) this.vx += 0.1 * dt;
+        if (this.x > this.w * 0.95) this.vx -= 0.1 * dt;
+        if (this.y < this.h * 0.6) this.vy += 0.1 * dt;
+        if (this.y > this.h * 0.95) this.vy -= 0.1 * dt;
+    }
+    
+    draw(ctx) {
+        ctx.save();
+        ctx.translate(this.x, this.y);
+        ctx.fillStyle = this.color;
+        
+        const flap = Math.abs(Math.sin(this.phase * 3.5)) * 0.8 + 0.2;
+        
+        ctx.beginPath();
+        ctx.ellipse(-1.5, 0, this.size, this.size * flap, -Math.PI / 6, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.ellipse(1.5, 0, this.size, this.size * flap, Math.PI / 6, 0, Math.PI * 2);
+        ctx.fill();
+        
+        ctx.restore();
+    }
+}
+
+// Firefly
+class Firefly {
+    constructor(w, h) {
+        this.w = w;
+        this.h = h;
+        this.reset();
+    }
+    
+    reset() {
+        this.x = this.w * 0.62 + Math.random() * (this.w * 0.32);
+        this.y = this.h * 0.56 + Math.random() * (this.h * 0.18);
+        this.vx = (Math.random() - 0.5) * 0.22;
+        this.vy = (Math.random() - 0.5) * 0.22;
+        this.life = Math.random() * Math.PI * 2;
+        this.pulseSpeed = Math.random() * 0.04 + 0.02;
+    }
+    
+    update(w, h, dt = 1) {
+        this.w = w;
+        this.h = h;
+        
+        this.life += this.pulseSpeed * dt;
+        this.x += (this.vx + Math.sin(this.life) * 0.15) * dt;
+        this.y += (this.vy + Math.cos(this.life) * 0.15) * dt;
+        
+        if (this.x < this.w * 0.58 || this.x > this.w * 0.98) this.vx *= -1;
+        if (this.y < this.h * 0.5 || this.y > this.h * 0.76) this.vy *= -1;
+    }
+    
+    draw(ctx) {
+        const glowAlpha = (Math.sin(this.life) + 1) / 2;
+        if (glowAlpha < 0.05) return;
+        
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, 1.3, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(180, 255, 90, ${glowAlpha * 0.85})`;
+        ctx.shadowBlur = 8;
+        ctx.shadowColor = 'rgba(180, 255, 90, 1)';
+        ctx.fill();
+        ctx.restore();
+    }
+}
+
+// Koi Fish
+class KoiFish {
+    constructor(w, h) {
+        this.w = w;
+        this.h = h;
+        this.reset();
+    }
+    
+    reset() {
+        this.pctX = 0.42 + Math.random() * 0.14;
+        this.pctY = 0.86;
+        this.x = this.w * this.pctX;
+        this.y = this.h * this.pctY;
+        this.startX = this.x;
+        this.startY = this.y;
+        this.vx = (Math.random() - 0.5) * 1.6;
+        this.vy = -Math.random() * 4.5 - 3.5;
+        this.gravity = 0.2;
+        this.size = Math.random() * 4 + 2.8;
+        this.angle = 0;
+        this.active = false;
+        this.timer = Math.random() * 500 + 400;
+    }
+    
+    update(w, h, onSplash, dt = 1) {
+        this.w = w;
+        this.h = h;
+        
+        if (!this.active) {
+            this.x = this.w * this.pctX;
+            this.y = this.h * this.pctY;
+            this.startX = this.x;
+            this.startY = this.y;
+            this.timer -= dt;
+            if (this.timer <= 0) {
+                this.active = true;
+                onSplash(this.x, this.y);
+            }
+            return;
+        }
+        
+        this.vy += this.gravity * dt;
+        this.x += this.vx * dt;
+        this.y += this.vy * dt;
+        this.angle = Math.atan2(this.vy, this.vx);
+        
+        if (this.vy > 0 && this.y >= this.startY) {
+            onSplash(this.x, this.startY);
+            this.reset();
+        }
+    }
+    
+    draw(ctx) {
+        if (!this.active) return;
+        ctx.save();
+        ctx.translate(this.x, this.y);
+        ctx.rotate(this.angle);
+        
+        ctx.fillStyle = 'rgba(240, 110, 35, 0.95)';
+        ctx.beginPath();
+        ctx.ellipse(0, 0, this.size * 2.2, this.size, 0, 0, Math.PI * 2);
+        ctx.fill();
+        
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+        ctx.beginPath();
+        ctx.moveTo(-this.size * 2.2, 0);
+        ctx.lineTo(-this.size * 3.0, -this.size * 0.65);
+        ctx.lineTo(-this.size * 2.7, 0);
+        ctx.lineTo(-this.size * 3.0, this.size * 0.65);
+        ctx.closePath();
+        ctx.fill();
+        
+        ctx.restore();
+    }
+}
+
+// Squirrel
+class Squirrel {
+    constructor(w, h) {
+        this.w = w;
+        this.h = h;
+        this.reset();
+    }
+    
+    reset() {
+        this.x = this.w * 0.13;
+        this.y = this.h * 0.76;
+        this.targetY = this.y;
+        this.state = 'idle';
+        this.speed = 1.3;
+        this.size = 2.4;
+        this.timer = Math.random() * 250 + 100;
+    }
+    
+    update(w, h, dt = 1) {
+        this.w = w;
+        this.h = h;
+        this.x = this.w * 0.13;
+        
+        if (this.state === 'idle') {
+            this.timer -= dt;
+            if (this.timer <= 0) {
+                this.state = 'climbing';
+                this.targetY = this.h * (0.45 + Math.random() * 0.28);
+                this.speed = (this.targetY < this.y) ? -1.2 : 1.2;
+            }
+        } else if (this.state === 'climbing') {
+            this.y += this.speed * dt;
+            if ((this.speed > 0 && this.y >= this.targetY) || (this.speed < 0 && this.y <= this.targetY)) {
+                this.y = this.targetY;
+                this.state = 'idle';
+                this.timer = Math.random() * 250 + 80;
+            }
+            if (this.y < this.h * 0.44) { this.y = this.h * 0.44; this.state = 'idle'; }
+            if (this.y > this.h * 0.78) { this.y = this.h * 0.78; this.state = 'idle'; }
+        }
+    }
+    
+    draw(ctx) {
+        ctx.save();
+        ctx.translate(this.x, this.y);
+        
+        ctx.fillStyle = 'rgba(142, 88, 40, 0.85)';
+        ctx.beginPath();
+        ctx.arc(0, 0, this.size, 0, Math.PI * 2);
+        ctx.fill();
+        
+        ctx.beginPath();
+        ctx.ellipse(this.speed > 0 ? -this.size : this.size, -this.size * 0.5, this.size, this.size * 1.5, Math.PI / 4, 0, Math.PI * 2);
+        ctx.fill();
+        
+        ctx.restore();
+    }
+}
+
+// Fox
+class Fox {
+    constructor(w, h) {
+        this.w = w;
+        this.h = h;
+        this.reset();
+    }
+    
+    reset() {
+        this.state = 'hidden';
+        this.x = this.w * 0.44;
+        this.y = this.h * 0.82;
+        this.vx = 0.7;
+        this.size = 3.2;
+        this.timer = Math.random() * 1000 + 600;
+    }
+    
+    update(w, h, dt = 1) {
+        this.w = w;
+        this.h = h;
+        
+        const bridgeCurve = (x) => {
+            const startX = this.w * 0.45;
+            const endX = this.w * 0.75;
+            if (x < startX || x > endX) return this.h * 0.84;
+            
+            const midX = (startX + endX) / 2;
+            const h_offset = midX;
+            const k = this.h * 0.762;
+            const startY = this.h * 0.84;
+            const a = (startY - k) / Math.pow(startX - h_offset, 2);
+            return a * Math.pow(x - h_offset, 2) + k;
+        };
+        
+        if (this.state === 'hidden') {
+            this.timer -= dt;
+            if (this.timer <= 0) {
+                this.state = 'walking';
+                this.x = this.w * 0.43;
+                this.vx = 0.65;
+            }
+            return;
+        }
+        
+        this.x += this.vx * dt;
+        this.y = bridgeCurve(this.x);
+        
+        if (this.x > this.w * 0.76) {
+            this.reset();
+        }
+    }
+    
+    draw(ctx) {
+        if (this.state === 'hidden') return;
+        ctx.save();
+        ctx.translate(this.x, this.y);
+        
+        ctx.fillStyle = 'rgba(230, 95, 25, 0.9)';
+        ctx.beginPath();
+        ctx.ellipse(0, 0, this.size * 1.8, this.size, 0, 0, Math.PI * 2);
+        ctx.fill();
+        
+        ctx.beginPath();
+        ctx.arc(this.size * 1.5, -this.size * 0.5, this.size * 0.7, 0, Math.PI * 2);
+        ctx.fill();
+        
+        ctx.beginPath();
+        ctx.moveTo(this.size * 1.3, -this.size * 0.9);
+        ctx.lineTo(this.size * 1.5, -this.size * 1.6);
+        ctx.lineTo(this.size * 1.7, -this.size * 0.9);
+        ctx.closePath();
+        ctx.fill();
+        
+        ctx.ellipse(-this.size * 2, this.size * 0.3, this.size * 1.2, this.size * 0.6, -Math.PI / 6, 0, Math.PI * 2);
+        ctx.fill();
+        
+        ctx.fillStyle = 'white';
+        ctx.beginPath();
+        ctx.arc(-this.size * 2.8, this.size * 0.7, this.size * 0.4, 0, Math.PI * 2);
+        ctx.fill();
+        
+        ctx.restore();
+    }
+}
+
+// Instantiate on load
 window.addEventListener('DOMContentLoaded', () => {
-    window.ecosystem = new LivingEcosystem('ambient-canvas');
+    window.worldEngine = new LivingWorldEngine();
 });

@@ -1,92 +1,96 @@
-/* Design Tokens — Living Digital Ecosystem */
+/* --- CORE STYLES --- */
 :root {
-    --bg-dark: #060609;
-    
-    --primary: #ff6b35; /* Warm Orange */
-    --primary-glow: rgba(255, 107, 53, 0.25);
-    --secondary: #ff2d2d; /* Crimson Accent */
-    
-    --neon-blue: #00f0ff;
-    --neon-blue-glow: rgba(0, 240, 255, 0.35);
-    --neon-pink: #ff007f;
-    --neon-pink-glow: rgba(255, 0, 127, 0.35);
-    
-    --text-main: #f3f4f6;
-    --text-muted: #9ca3af;
-    --text-dark: #111827;
-    
-    --border-glow: 1px solid rgba(255, 255, 255, 0.05);
-    --border-glow-active: 1px solid rgba(255, 107, 53, 0.2);
-    
-    --glass-bg: rgba(13, 13, 20, 0.45);
-    --glass-bg-hover: rgba(20, 20, 30, 0.7);
-    --glass-blur: blur(16px) saturate(120%);
-    
-    --transition-smooth: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
-    --transition-fast: all 0.2s ease;
+    --primary: #ff6b35; /* Warm Orange matching Naruto/artwork vibes */
+    --primary-glow: rgba(255, 107, 53, 0.4);
+    --glass-bg: rgba(10, 10, 18, 0.55);
+    --glass-border: rgba(255, 255, 255, 0.08);
+    --glass-hover-border: rgba(255, 255, 255, 0.15);
+    --text-primary: #f8fafc;
+    --text-secondary: #94a3b8;
+    --font-outfit: 'Outfit', sans-serif;
+    --font-fira: 'Fira Code', monospace;
+    --font-playfair: 'Playfair Display', serif;
 }
 
-/* Reset & Base Styles */
-* {
+body, html {
     margin: 0;
     padding: 0;
-    box-sizing: border-box;
-    scroll-behavior: smooth;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    font-family: var(--font-outfit);
+    background-color: #050505;
+    color: var(--text-primary);
+    user-select: none;
+    -webkit-font-smoothing: antialiased;
 }
 
-body {
-    background-color: var(--bg-dark);
-    color: var(--text-main);
-    font-family: 'Outfit', 'Noto Sans JP', sans-serif;
-    overflow-x: hidden;
-    line-height: 1.6;
+a {
+    color: inherit;
+    text-decoration: none;
 }
 
-body::-webkit-scrollbar {
-    width: 6px;
-}
-
-body::-webkit-scrollbar-track {
-    background: var(--bg-dark);
-}
-
-body::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 3px;
-}
-
-body::-webkit-scrollbar-thumb:hover {
-    background: var(--primary);
-}
-
-/* Ambient canvas setup */
-#ambient-canvas {
+/* --- CUSTOM CURSOR --- */
+#custom-cursor {
     position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    z-index: 1;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
     pointer-events: none;
-    image-rendering: -moz-crisp-edges;
-    image-rendering: -webkit-crisp-edges;
-    image-rendering: pixelated;
-    image-rendering: crisp-edges;
+    z-index: 9999;
 }
 
-/* Preloader Screen */
+.cursor-dot {
+    position: absolute;
+    width: 6px; height: 6px;
+    background-color: var(--primary);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    transition: width 0.2s, height 0.2s;
+}
+
+.cursor-ring {
+    position: absolute;
+    width: 32px; height: 32px;
+    border: 1px solid rgba(255,255,255,0.25);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    transition: width 0.2s, height 0.2s, border-color 0.2s;
+}
+
+body:hover .cursor-dot { opacity: 1; }
+body:hover .cursor-ring { opacity: 1; }
+
+.hovering-link .cursor-dot {
+    width: 10px; height: 10px;
+    background-color: var(--primary);
+}
+
+.hovering-link .cursor-ring {
+    width: 44px; height: 44px;
+    border-color: var(--primary);
+    background-color: rgba(255, 107, 53, 0.05);
+}
+
+/* Hide normal cursor if custom cursor is active on fine pointers */
+@media (pointer: fine) {
+    body {
+        cursor: none !important;
+    }
+    button, a, label, input[type="range"] {
+        cursor: none !important;
+    }
+}
+
+/* --- PRELOADER --- */
 #preloader {
     position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    background: #040406;
-    z-index: 9999;
+    inset: 0;
+    background-color: #050508;
+    z-index: 10000;
     display: flex;
     justify-content: center;
     align-items: center;
-    transition: opacity 0.5s ease, visibility 0.5s ease;
+    transition: opacity 0.8s ease, transform 0.8s ease;
 }
 
 .loader-inner {
@@ -94,1002 +98,881 @@ body::-webkit-scrollbar-thumb:hover {
 }
 
 .logo-animation {
+    font-family: var(--font-fira);
+    font-size: 3.5rem;
+    font-weight: 700;
+    color: var(--text-primary);
     display: flex;
     justify-content: center;
     align-items: center;
     gap: 8px;
-    font-size: 2.5rem;
-    font-weight: 700;
-    color: var(--primary);
-    margin-bottom: 15px;
+    margin-bottom: 20px;
 }
 
 .logo-animation .bracket {
-    font-family: 'Fira Code', monospace;
-    font-weight: 300;
+    display: inline-block;
+    color: var(--primary);
 }
 
 .logo-animation .dot {
-    animation: blink 1.2s infinite ease-in-out;
+    color: var(--text-primary);
+    animation: pulseDot 1.5s infinite;
 }
 
 .loader-text {
-    font-size: 0.85rem;
-    color: var(--text-muted);
-    letter-spacing: 0.15em;
+    font-size: 11px;
+    letter-spacing: 3px;
     text-transform: uppercase;
+    color: var(--text-secondary);
+    margin-bottom: 24px;
 }
 
-@keyframes blink {
-    0%, 100% { opacity: 0.2; transform: scale(0.9); }
-    50% { opacity: 1; transform: scale(1.1); }
-}
-
-/* Ecosystem HUD Control Panel */
-#ecosystem-hud {
-    position: fixed;
-    left: 30px;
-    top: 30px;
-    z-index: 100;
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-}
-
-.hud-widget {
-    background: var(--glass-bg);
-    backdrop-filter: var(--glass-blur);
-    border: var(--border-glow);
-    padding: 10px 15px;
-    border-radius: 30px;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
-    transition: var(--transition-smooth);
-}
-
-.hud-widget:hover {
-    background: var(--glass-bg-hover);
-    border-color: var(--border-glow-active);
-}
-
-.hud-btn {
-    background: transparent;
-    border: none;
-    cursor: pointer;
-    font-size: 1.1rem;
-    width: 32px;
-    height: 32px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 50%;
-    transition: var(--transition-fast);
-}
-
-.hud-btn:hover {
-    background: rgba(255, 255, 255, 0.05);
-    transform: scale(1.15);
-}
-
-.hud-btn.active {
-    background: rgba(255, 107, 53, 0.15);
-    color: var(--primary);
-    box-shadow: 0 0 10px var(--primary-glow);
-}
-
-#time-widget input[type="range"],
-#audio-widget input[type="range"] {
-    -webkit-appearance: none;
-    appearance: none;
-    width: 80px;
-    height: 3px;
-    background: rgba(255, 255, 255, 0.15);
+.loader-bar-bg {
+    width: 180px; height: 2px;
+    background-color: rgba(255,255,255,0.05);
+    margin: 0 auto;
     border-radius: 2px;
-    outline: none;
+    overflow: hidden;
 }
 
-#time-widget input[type="range"]::-webkit-slider-thumb,
-#audio-widget input[type="range"]::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    appearance: none;
-    width: 10px;
-    height: 10px;
-    background: #fff;
-    border-radius: 50%;
-    cursor: pointer;
-    transition: var(--transition-fast);
+.loader-bar-fill {
+    width: 0%; height: 100%;
+    background-color: var(--primary);
+    border-radius: 2px;
+    animation: fillLoader 2.2s ease-in-out forwards;
 }
 
-#time-widget input[type="range"]::-webkit-slider-thumb:hover,
-#audio-widget input[type="range"]::-webkit-slider-thumb:hover {
-    background: var(--primary);
-    transform: scale(1.3);
+@keyframes pulseDot {
+    0%, 100% { transform: scale(1); opacity: 1; text-shadow: 0 0 10px var(--primary); }
+    50% { transform: scale(1.1); opacity: 0.5; text-shadow: none; }
 }
 
-.time-icon {
-    font-size: 0.85rem;
-    opacity: 0.65;
+@keyframes fillLoader {
+    0% { width: 0%; }
+    50% { width: 40%; }
+    70% { width: 80%; }
+    100% { width: 100%; }
 }
 
-/* Global Curiosity Compass HUD */
-#curiosity-compass {
-    position: fixed;
-    right: 40px;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 100px;
-    height: 100px;
-    z-index: 100;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+/* --- THE LIVING WORLD CONTAINER --- */
+#world {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+}
+
+.layer {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
     pointer-events: none;
-    opacity: 0;
-    transition: var(--transition-smooth);
+    transition: transform 0.1s ease-out;
 }
 
-#curiosity-compass.visible {
-    opacity: 0.75;
+/* Base Image */
+#base-image {
+    background-image: url('assets/naruto_nature.png');
+    background-size: cover;
+    background-position: center bottom;
+    z-index: 1;
+}
+
+/* CSS Masking for Tree Sway */
+/* Left Big Tree */
+#tree-left-sway {
+    background-image: url('assets/naruto_nature.png');
+    background-size: cover;
+    background-position: center bottom;
+    z-index: 2;
+    -webkit-mask-image: radial-gradient(circle at 18% 48%, black 0%, black 17%, transparent 28%);
+    animation: swayLeft var(--sway-duration-left, 14s) ease-in-out infinite;
+    transform-origin: 10% 100%;
+}
+
+/* Right Cherry Blossom Tree */
+#tree-right-sway {
+    background-image: url('assets/naruto_nature.png');
+    background-size: cover;
+    background-position: center bottom;
+    z-index: 2;
+    -webkit-mask-image: radial-gradient(circle at 86% 66%, black 0%, black 14%, transparent 24%);
+    animation: swayRight var(--sway-duration-right, 11s) ease-in-out infinite;
+    transform-origin: 90% 100%;
+}
+
+@keyframes swayLeft {
+    0%, 100% { transform: rotate(0deg) skewX(0deg); }
+    50% { transform: rotate(var(--sway-angle-left, 0.6deg)) skewX(0.4deg) scaleY(1.005); }
+}
+
+@keyframes swayRight {
+    0%, 100% { transform: rotate(0deg) skewX(0deg); }
+    50% { transform: rotate(var(--sway-angle-right, -0.8deg)) skewX(-0.3deg) scaleY(1.003); }
+}
+
+/* Canvases */
+#water-canvas {
+    z-index: 3;
+    mix-blend-mode: screen;
+}
+
+#galaxy-canvas {
+    z-index: 1;
+    mix-blend-mode: screen;
+    opacity: 0;
+    transition: opacity 4s ease;
+}
+
+#physics-canvas {
+    z-index: 5;
+}
+
+/* Atmosphere & Lighting */
+#atmosphere {
+    z-index: 4;
+    mix-blend-mode: multiply;
+    transition: background 5s ease, opacity 5s ease;
+    background: transparent;
+}
+
+#sun-flare {
+    position: absolute;
+    top: 20%; right: 15%;
+    width: 35vw; height: 35vw;
+    background: radial-gradient(circle, rgba(255,242,190,0.3) 0%, transparent 60%);
+    mix-blend-mode: overlay;
+    z-index: 4;
+    transform: translate(50%, -50%);
+    transition: opacity 5s ease, transform 10s ease;
+    animation: pulseSun 10s infinite alternate ease-in-out;
+}
+
+@keyframes pulseSun {
+    0% { transform: translate(50%, -50%) scale(1); opacity: 0.5; }
+    100% { transform: translate(50%, -50%) scale(1.15); opacity: 0.85; }
+}
+
+/* --- INTERACTIVE HOTSPOTS --- */
+#hotspots-container {
+    position: absolute;
+    inset: 0;
+    z-index: 8;
     pointer-events: auto;
 }
 
-#curiosity-compass:hover {
-    opacity: 1;
-}
-
-.compass-ring {
+.hotspot-node {
     position: absolute;
-    width: 80px;
-    height: 80px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 50%;
-}
-
-.compass-pointer {
-    position: absolute;
-    width: 2px;
-    height: 32px;
-    background: linear-gradient(to top, transparent, var(--primary));
-    transform-origin: bottom center;
-    bottom: 50%;
-    transition: transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.compass-label {
-    position: absolute;
-    font-size: 0.65rem;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    color: var(--text-muted);
+    width: 20px; height: 20px;
+    transform: translate(-50%, -50%);
     cursor: pointer;
-    padding: 4px;
-    transition: var(--transition-fast);
 }
 
-.compass-label:hover {
-    color: var(--primary);
-    text-shadow: 0 0 8px var(--primary-glow);
-}
-
-.compass-label.North { top: -10px; }
-.compass-label.East { right: -25px; }
-.compass-label.South { bottom: -10px; }
-.compass-label.West { left: -25px; }
-
-/* Navigation Header */
-#header {
+.hotspot-ping {
     position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    z-index: 90;
-    padding: 35px 0;
+    width: 100%; height: 100%;
+    background-color: var(--primary);
+    border-radius: 50%;
+    opacity: 0.7;
+    box-shadow: 0 0 10px var(--primary);
+    animation: pingIndicator 2s infinite ease-in-out;
 }
 
-.header-inner {
-    max-width: 1300px;
-    margin: 0 auto;
+.hotspot-node::after {
+    content: '';
+    position: absolute;
+    top: 6px; left: 6px;
+    width: 8px; height: 8px;
+    background-color: white;
+    border-radius: 50%;
+    box-shadow: 0 0 5px white;
+    z-index: 2;
+}
+
+@keyframes pingIndicator {
+    0% { transform: scale(0.6); opacity: 0.9; box-shadow: 0 0 4px var(--primary); }
+    100% { transform: scale(2.2); opacity: 0; box-shadow: 0 0 18px var(--primary); }
+}
+
+.hotspot-label {
+    position: absolute;
+    bottom: 28px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(10, 10, 15, 0.85);
+    border: 1px solid var(--glass-border);
+    backdrop-filter: blur(8px);
+    border-radius: 4px;
+    padding: 6px 12px;
+    color: white;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+    transform: translate(-50%, 8px);
+}
+
+.hotspot-topic {
+    display: block;
+    color: var(--primary);
+    font-size: 8px;
+    opacity: 0.8;
+    margin-top: 2px;
+    letter-spacing: 0.5px;
+}
+
+.hotspot-node:hover .hotspot-label {
+    opacity: 1;
+    transform: translate(-50%, 0);
+}
+
+/* --- HUD TOP BAR --- */
+#hud-top-bar {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: 60px;
+    z-index: 100;
+    padding: 0 30px;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 0 40px;
+    background: linear-gradient(to bottom, rgba(0,0,0,0.4), transparent);
+    pointer-events: none;
+}
+
+#hud-top-bar .brand, #hud-top-bar .hud-status {
+    pointer-events: auto;
 }
 
 .brand {
     display: flex;
     align-items: center;
     gap: 10px;
-    text-decoration: none;
+    font-size: 11px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
 }
 
 .brand-dot {
-    width: 8px;
-    height: 8px;
+    width: 6px; height: 6px;
     background-color: var(--primary);
     border-radius: 50%;
     box-shadow: 0 0 8px var(--primary);
 }
 
 .brand-name {
-    color: var(--text-main);
-    font-weight: 700;
-    font-size: 1.1rem;
-    letter-spacing: 0.05em;
+    font-weight: 600;
+}
+
+.brand-separator {
+    color: rgba(255,255,255,0.15);
 }
 
 .brand-title {
-    font-size: 0.8rem;
-    text-transform: uppercase;
-    letter-spacing: 0.15em;
-    color: var(--text-muted);
+    color: var(--text-secondary);
 }
 
-/* Sections General */
-.biome-section {
-    position: relative;
-    min-height: 100vh;
+.hud-status {
     display: flex;
     align-items: center;
-    padding: 120px 0;
-    z-index: 10;
+    gap: 10px;
+    font-size: 11px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    backdrop-filter: blur(8px);
+    padding: 6px 16px;
+    border-radius: 50px;
+}
+
+.pulse-dot {
+    width: 6px; height: 6px;
+    background-color: var(--primary);
+    border-radius: 50%;
+    box-shadow: 0 0 10px var(--primary);
+    animation: blink 2s infinite;
+}
+
+@keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+
+/* --- HUD CONTROL WIDGETS --- */
+#ecosystem-hud {
+    position: fixed;
+    bottom: 30px; right: 30px;
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    align-items: flex-end;
+}
+
+.hud-widget {
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    backdrop-filter: blur(8px);
+    border-radius: 50px;
+    padding: 6px 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+    transition: border-color 0.3s, box-shadow 0.3s;
+}
+
+.hud-widget:hover {
+    border-color: var(--glass-hover-border);
+    box-shadow: 0 8px 32px rgba(255, 107, 53, 0.05);
+}
+
+.hud-btn {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    border: 1px solid transparent;
+    background: rgba(255,255,255,0.03);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 13px;
+    transition: background 0.2s, border-color 0.2s, transform 0.2s;
+}
+
+.hud-btn:hover {
+    background: rgba(255,255,255,0.1);
+    transform: scale(1.08);
+}
+
+.hud-btn.active {
+    background: rgba(255, 107, 53, 0.15);
+    border-color: var(--primary);
+    box-shadow: 0 0 8px var(--primary-glow);
+}
+
+/* range sliders */
+input[type="range"] {
+    -webkit-appearance: none;
+    width: 80px; height: 3px;
+    background: rgba(255,255,255,0.15);
+    border-radius: 2px;
+    outline: none;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 10px; height: 10px;
+    background: var(--primary);
+    border-radius: 50%;
+    cursor: none;
+    box-shadow: 0 0 5px var(--primary);
+    transition: transform 0.1s;
+}
+
+input[type="range"]::-webkit-slider-thumb:hover {
+    transform: scale(1.25);
+}
+
+.time-icon {
+    font-size: 11px;
+    opacity: 0.7;
+}
+
+/* --- NAVIGATION COMPASS --- */
+#navigation-compass {
+    position: fixed;
+    bottom: 30px; left: 30px;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.compass-ring {
+    position: relative;
+    width: 80px; height: 80px;
+    border: 1px solid var(--glass-border);
+    background: var(--glass-bg);
+    backdrop-filter: blur(8px);
+    border-radius: 50%;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+}
+
+.compass-label {
+    position: absolute;
+    font-family: var(--font-fira);
+    font-size: 9px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    background: transparent;
+    border: none;
+    padding: 0; margin: 0;
+    outline: none;
+    transition: color 0.2s, text-shadow 0.2s;
+}
+
+.compass-label:hover {
+    color: var(--primary);
+    text-shadow: 0 0 6px var(--primary-glow);
+}
+
+.compass-pointer {
+    position: absolute;
+    top: 50%; left: 50%;
+    width: 2px; height: 36px;
+    background: linear-gradient(to top, transparent 50%, var(--primary) 50%);
+    transform: translate(-50%, -50%) rotate(0deg);
+    transition: transform 1.2s cubic-bezier(0.19, 1, 0.22, 1);
+}
+
+.compass-pointer::after {
+    content: '';
+    position: absolute;
+    top: 0; left: -2px;
+    width: 6px; height: 6px;
+    background: white;
+    border-radius: 50%;
+    box-shadow: 0 0 6px white;
+}
+
+.compass-tip-text {
+    font-size: 9px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+    opacity: 0.6;
+}
+
+/* --- PORTFOLIO GLASSMORPHISM MODALS --- */
+.glass-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: rgba(5, 5, 8, 0.4);
+    backdrop-filter: blur(4px);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.5s cubic-bezier(0.25, 1, 0.5, 1), backdrop-filter 0.5s;
+}
+
+.glass-modal.open {
+    opacity: 1;
+    pointer-events: auto;
+    backdrop-filter: blur(10px);
+}
+
+.modal-card {
+    background: rgba(10, 10, 20, 0.75);
+    border: 1px solid var(--glass-border);
+    box-shadow: 0 24px 64px rgba(0,0,0,0.6);
+    border-radius: 20px;
+    width: 90%; max-width: 580px;
+    padding: 35px;
+    position: relative;
+    transform: scale(0.95) translateY(20px);
+    transition: transform 0.5s cubic-bezier(0.25, 1, 0.5, 1);
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.glass-modal.open .modal-card {
+    transform: scale(1) translateY(0);
+    border-color: var(--glass-hover-border);
+}
+
+.modal-close-btn {
+    position: absolute;
+    top: 20px; right: 25px;
+    font-size: 26px;
+    color: var(--text-secondary);
+    background: transparent;
+    border: none;
+    line-height: 1;
+    outline: none;
+    transition: color 0.2s, transform 0.2s;
+}
+
+.modal-close-btn:hover {
+    color: white;
+    transform: scale(1.1);
+}
+
+.modal-tag {
+    font-family: var(--font-fira);
+    color: var(--primary);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-bottom: 8px;
+    display: block;
+}
+
+.modal-title {
+    font-size: 2.2rem;
+    font-weight: 400;
+    margin-bottom: 24px;
+    color: var(--text-primary);
+    letter-spacing: 0.5px;
+}
+
+.modal-body-content {
+    color: var(--text-secondary);
+    line-height: 1.6;
+}
+
+/* Inside modals elements */
+.belief-pill {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--glass-border);
+    border-radius: 50px;
+    padding: 6px 16px;
+    color: var(--text-primary);
+    letter-spacing: 0.5px;
+    transition: background 0.2s, border-color 0.2s;
+}
+
+.belief-pill:hover {
+    background: rgba(255, 107, 53, 0.05);
+    border-color: var(--primary);
+}
+
+.meter-bar {
+    width: 100%; height: 4px;
+    background: rgba(255,255,255,0.05);
+    border-radius: 4px;
     overflow: hidden;
 }
 
-.section-container {
-    max-width: 1300px;
-    margin: 0 auto;
-    padding: 0 40px;
-    width: 100%;
-    position: relative;
-    z-index: 5;
+.meter-fill {
+    height: 100%;
+    background: linear-gradient(to right, var(--primary), #ffa382);
+    border-radius: 4px;
+    box-shadow: 0 0 6px var(--primary-glow);
 }
 
-.section-header {
-    max-width: 800px;
-    margin-bottom: 75px;
+.project-item-card {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    padding: 20px;
+    transition: transform 0.3s, border-color 0.3s, background 0.3s;
 }
 
-.section-tag {
-    font-family: 'Fira Code', monospace;
-    font-size: 0.8rem;
+.project-item-card:hover {
+    transform: translateY(-4px);
+    border-color: rgba(255, 107, 53, 0.25);
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.project-tag {
+    font-family: var(--font-fira);
     color: var(--primary);
-    letter-spacing: 0.1em;
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
     display: block;
+    margin-bottom: 6px;
+}
+
+.project-name {
+    font-size: 1.3rem;
+    color: white;
     margin-bottom: 10px;
 }
 
-.section-title {
-    font-size: clamp(2rem, 4.5vw, 3.2rem);
-    font-weight: 800;
-    margin-bottom: 15px;
-    letter-spacing: -0.02em;
-}
-
-.section-desc {
-    color: var(--text-muted);
-    font-size: 1.1rem;
-    font-weight: 300;
-}
-
-/* Biome 1: Hero (Morning Forest) */
-#hero {
-    padding: 0;
-}
-
-.status-indicator {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    background: rgba(255, 255, 255, 0.03);
-    border: var(--border-glow);
-    padding: 8px 16px;
-    border-radius: 20px;
-    font-size: 0.8rem;
-    margin-bottom: 30px;
-    backdrop-filter: blur(5px);
-}
-
-.status-dot {
-    width: 6px;
-    height: 6px;
-    background-color: #10b981;
-    border-radius: 50%;
-    box-shadow: 0 0 8px #10b981;
-    animation: glowPulse 2s infinite ease-in-out;
-}
-
-@keyframes glowPulse {
-    0%, 100% { opacity: 0.5; }
-    50% { opacity: 1; }
-}
-
-.main-title {
-    font-size: clamp(2.5rem, 5.5vw, 5rem);
-    font-weight: 900;
-    line-height: 1.12;
-    letter-spacing: -0.03em;
-    margin-bottom: 25px;
-}
-
-.title-fade {
-    opacity: 0.85;
-    font-weight: 300;
-}
-
-.gradient-text {
-    background: linear-gradient(135deg, #fff 30%, rgba(255, 255, 255, 0.7));
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    text-shadow: 0 0 40px rgba(255, 255, 255, 0.05);
-}
-
-.main-subtitle {
-    font-size: clamp(1.1rem, 2vw, 1.3rem);
-    color: var(--text-muted);
-    max-width: 720px;
-    margin-bottom: 50px;
-    font-weight: 300;
-}
-
-.hero-actions {
-    display: flex;
-    gap: 20px;
-    margin-bottom: 65px;
-}
-
-.quick-beliefs {
-    display: flex;
-    gap: 30px;
-    flex-wrap: wrap;
-    opacity: 0.65;
-}
-
-.belief-pill {
-    font-size: 0.85rem;
-    color: var(--text-main);
-    position: relative;
-    padding-left: 15px;
-}
-
-.belief-pill::before {
-    content: '•';
-    color: var(--primary);
-    position: absolute;
-    left: 0;
-    top: 0;
-}
-
-/* Biome 2: River */
-.river-layout {
-    display: grid;
-    grid-template-columns: 1.2fr 1fr;
-    gap: 60px;
-    align-items: center;
-}
-
-.about-narrative h3 {
-    font-size: 1.6rem;
-    font-weight: 700;
-    margin-bottom: 20px;
-}
-
-.about-narrative p {
-    font-size: 1.05rem;
-    color: var(--text-muted);
-    margin-bottom: 20px;
-    font-weight: 300;
-}
-
-.desk-view-card {
-    background: var(--glass-bg);
-    border: var(--border-glow);
-    border-radius: 24px;
-    padding: 24px;
-    backdrop-filter: var(--glass-blur);
-    transition: var(--transition-smooth);
-}
-
-.desk-view-card:hover {
-    border-color: var(--border-glow-active);
-    transform: translateY(-5px);
-    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
-}
-
-.window-frame {
-    width: 100%;
-    aspect-ratio: 16 / 10;
-    border-radius: 14px;
-    overflow: hidden;
-    position: relative;
-    background: #000;
-}
-
-.window-glass-img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    opacity: 0.8;
-    filter: brightness(0.85) contrast(1.15);
-    transition: var(--transition-smooth);
-}
-
-.desk-view-card:hover .window-glass-img {
-    transform: scale(1.03);
-}
-
-.window-overlay-neon {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    mix-blend-mode: screen;
-    pointer-events: none;
-}
-
-.window-overlay-neon.glow-pink {
-    background: radial-gradient(circle at 20% 50%, var(--neon-pink-glow) 0%, transparent 60%);
-    animation: neonFlicker 4s infinite alternate ease-in-out;
-}
-
-.window-overlay-neon.glow-blue {
-    background: radial-gradient(circle at 80% 50%, var(--neon-blue-glow) 0%, transparent 60%);
-    animation: neonFlicker 3s infinite alternate ease-in-out;
-}
-
-@keyframes neonFlicker {
-    0%, 100% { opacity: 0.7; }
-    50% { opacity: 0.95; }
-    52% { opacity: 0.35; }
-    54% { opacity: 0.95; }
-}
-
-.desk-caption {
-    margin-top: 20px;
-}
-
-.desk-caption h4 {
-    font-size: 1.1rem;
-    font-weight: 700;
-    margin-bottom: 4px;
-}
-
-.desk-caption p {
-    font-size: 0.85rem;
-    color: var(--text-muted);
-}
-
-/* Biome 3: Mountain */
-.mountain-peaks-layout {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 30px;
-}
-
-.peak-card {
-    background: var(--glass-bg);
-    border: var(--border-glow);
-    padding: 40px;
-    border-radius: 24px;
-    backdrop-filter: var(--glass-blur);
-    transition: var(--transition-smooth);
-}
-
-.peak-card:hover {
-    transform: translateY(-8px);
-    background: var(--glass-bg-hover);
-    border-color: var(--border-glow-active);
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
-}
-
-.peak-elevation {
-    font-family: 'Fira Code', monospace;
-    font-size: 0.75rem;
-    color: var(--primary);
-    text-transform: uppercase;
-    display: block;
-    margin-bottom: 12px;
-}
-
-.peak-card h4 {
-    font-size: 1.35rem;
-    font-weight: 800;
+.project-description {
+    font-size: 12px;
+    color: var(--text-secondary);
     margin-bottom: 15px;
 }
 
-.peak-card p {
-    color: var(--text-muted);
-    font-size: 0.95rem;
-    margin-bottom: 25px;
-    line-height: 1.6;
-}
-
-.peak-tech {
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-}
-
-.peak-tech span {
-    font-family: 'Fira Code', monospace;
-    font-size: 0.75rem;
-    background: rgba(255, 255, 255, 0.03);
-    border: var(--border-glow);
-    padding: 4px 10px;
-    border-radius: 6px;
-    color: var(--text-muted);
-}
-
-/* Biome 4: Sky (The Four Pillars) */
-.pillars-container {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 30px;
-}
-
-.pillar-glass {
-    background: var(--glass-bg);
-    border: var(--border-glow);
-    border-radius: 24px;
-    padding: 40px;
-    backdrop-filter: var(--glass-blur);
-    transition: var(--transition-smooth);
-}
-
-.pillar-glass:hover {
-    background: var(--glass-bg-hover);
-    border-color: var(--border-glow-active);
-    transform: translateY(-5px);
-}
-
-.pillar-label {
-    font-family: 'Fira Code', monospace;
-    font-size: 0.8rem;
-    color: var(--primary);
-    text-transform: uppercase;
-    display: block;
-    margin-bottom: 25px;
-    font-weight: 600;
-    letter-spacing: 0.05em;
-}
-
-.pillar-glass ul {
-    list-style: none;
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-}
-
-.pillar-glass li {
-    font-size: 0.95rem;
-    color: var(--text-muted);
-    line-height: 1.6;
-}
-
-.pillar-glass li strong {
-    color: var(--text-main);
-    display: block;
-    font-size: 1rem;
-    margin-bottom: 4px;
-}
-
-/* Biome 5: Universe */
-.greenhouse-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 30px;
+.project-stack span {
+    font-family: var(--font-fira);
+    font-size: 9px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.05);
+    border-radius: 4px;
+    padding: 2px 8px;
+    color: var(--text-secondary);
 }
 
 .greenhouse-seed {
-    background: var(--glass-bg);
-    border: var(--border-glow);
-    border-radius: 24px;
-    padding: 35px;
-    backdrop-filter: var(--glass-blur);
-    transition: var(--transition-smooth);
+    background: rgba(255,255,255,0.015);
+    border: 1px solid var(--glass-border);
+    border-radius: 10px;
+    padding: 16px;
+    transition: border-color 0.3s;
 }
 
 .greenhouse-seed:hover {
-    transform: translateY(-5px);
-    border-color: var(--border-glow-active);
+    border-color: rgba(255, 107, 53, 0.15);
 }
 
-.seed-phase {
-    font-family: 'Fira Code', monospace;
-    font-size: 0.72rem;
+.seed-badge {
+    font-size: 9px;
     text-transform: uppercase;
-    color: var(--primary);
-    display: block;
-    margin-bottom: 15px;
-}
-
-.greenhouse-seed h4 {
-    font-size: 1.15rem;
-    font-weight: 700;
-    margin-bottom: 10px;
-}
-
-.greenhouse-seed p {
-    font-size: 0.9rem;
-    color: var(--text-muted);
-}
-
-/* Biome 6: Cosmos (Campfire & Interactive Terminal Command) */
-.terminal-closing-box {
-    background: rgba(8, 8, 12, 0.75);
-    border: var(--border-glow);
-    border-radius: 28px;
-    padding: 55px;
-    backdrop-filter: var(--glass-blur);
-    box-shadow: 0 20px 50px rgba(0,0,0,0.5);
-}
-
-.terminal-closing-inner {
-    display: grid;
-    grid-template-columns: 1fr 2fr;
-    gap: 48px;
-    align-items: center;
-}
-
-@media (max-width: 768px) {
-    .terminal-closing-inner {
-        grid-template-columns: 1fr;
-        gap: 32px;
-    }
-}
-
-.operator-profile-card {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-    border-right: 1px solid rgba(255, 255, 255, 0.08);
-    padding-right: 48px;
-}
-
-@media (max-width: 768px) {
-    .operator-profile-card {
-        border-right: none;
-        padding-right: 0;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-        padding-bottom: 32px;
-    }
-}
-
-.operator-avatar-wrapper {
-    position: relative;
-    width: 140px;
-    height: 140px;
-    border-radius: 50%;
-    overflow: hidden;
-    border: 2px solid rgba(255, 255, 255, 0.1);
-    margin-bottom: 20px;
-    box-shadow: 0 0 24px rgba(16, 185, 129, 0.12);
-}
-
-.operator-avatar {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    filter: grayscale(20%) contrast(1.05);
-    transition: filter 0.3s ease;
-}
-
-.operator-avatar-wrapper:hover .operator-avatar {
-    filter: none;
-}
-
-.avatar-scanner-line {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 2px;
-    background: linear-gradient(to right, transparent, #10b981, transparent);
-    animation: avatarScan 3s infinite linear;
-    pointer-events: none;
-}
-
-@keyframes avatarScan {
-    0% { top: 0%; }
-    50% { top: 100%; }
-    100% { top: 0%; }
-}
-
-.operator-meta {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-}
-
-.operator-title {
-    font-family: var(--font-mono);
-    font-size: 10px;
-    color: rgba(255, 255, 255, 0.4);
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-}
-
-.operator-name {
-    font-size: 18px;
-    font-weight: 700;
-    color: #ffffff;
-}
-
-.operator-status {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    margin-top: 4px;
-}
-
-.status-indicator-dot {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background-color: #10b981;
-    box-shadow: 0 0 8px #10b981;
-    animation: blinkGlow 2s infinite ease-in-out;
-}
-
-@keyframes blinkGlow {
-    0%, 100% { opacity: 0.4; }
-    50% { opacity: 1; }
-}
-
-.status-indicator-text {
-    font-family: var(--font-mono);
-    font-size: 11px;
-    color: #10b981;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-}
-
-.closing-headline {
-    font-size: 1.8rem;
-    font-weight: 700;
-    margin-bottom: 15px;
-}
-
-.prompt-instruction {
-    font-size: 0.95rem;
-    color: var(--text-muted);
-    margin-bottom: 15px;
-}
-
-.cmd-highlight {
-    font-family: 'Fira Code', monospace;
-    color: var(--primary);
+    letter-spacing: 1px;
     font-weight: 600;
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    margin-bottom: 8px;
 }
 
-.standalone-terminal-line {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    background: rgba(0, 0, 0, 0.3);
-    border: 1px solid rgba(255, 255, 255, 0.04);
-    padding: 18px 24px;
-    border-radius: 12px;
-    font-family: 'Fira Code', monospace;
+.seed-thinking { background: rgba(147, 197, 253, 0.1); color: #93c5fd; }
+.seed-designing { background: rgba(216, 180, 254, 0.1); color: #d8b4fe; }
+.seed-proto { background: rgba(253, 186, 116, 0.1); color: #fdba74; }
+
+.seed-title {
+    font-size: 1.1rem;
+    color: white;
+    margin-bottom: 6px;
 }
 
-.pulse-caret {
+.seed-desc {
+    font-size: 12px;
+}
+
+/* --- OPERATOR CONSOLE TERMINAL --- */
+#terminal-trigger-btn {
+    position: fixed;
+    bottom: 30px; left: 50%;
+    transform: translateX(-50%);
+    z-index: 100;
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    backdrop-filter: blur(8px);
+    padding: 10px 24px;
+    border-radius: 50px;
+    font-family: var(--font-fira);
+    font-size: 11px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: white;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.35);
+    transition: border-color 0.3s, box-shadow 0.3s, transform 0.2s;
+    outline: none;
+}
+
+#terminal-trigger-btn:hover {
+    border-color: var(--primary);
+    box-shadow: 0 0 15px var(--primary-glow);
+    transform: translateX(-50%) translateY(-2px);
+}
+
+.terminal-icon-code {
     color: var(--primary);
     font-weight: 700;
-    animation: caretBlink 1s infinite steps(2);
+    margin-right: 4px;
 }
 
-@keyframes caretBlink {
-    0%, 100% { opacity: 0; }
-    50% { opacity: 1; }
+/* Terminal Modal specifics */
+#terminal-modal .modal-card {
+    background: rgba(5, 5, 8, 0.85);
 }
 
-.standalone-terminal-input {
+.terminal-welcome {
+    line-height: 1.4;
+}
+
+.terminal-history {
+    font-family: var(--font-fira);
+}
+
+.terminal-history div {
+    margin-bottom: 4px;
+    line-height: 1.4;
+}
+
+.terminal-input-line input {
     background: transparent;
     border: none;
     outline: none;
-    color: var(--text-main);
-    font-family: inherit;
-    font-size: 1rem;
-    flex-grow: 1;
-}
-
-.standalone-terminal-result {
-    margin-top: 30px;
-    font-family: 'Fira Code', monospace;
-    font-size: 0.88rem;
-    color: var(--text-muted);
-    line-height: 1.6;
-    white-space: pre-wrap;
-}
-
-/* General Buttons */
-.btn {
-    display: inline-flex;
-    align-items: center;
-    padding: 12px 28px;
-    border-radius: 50px;
-    font-weight: 600;
-    text-decoration: none;
-    font-size: 0.9rem;
-    transition: var(--transition-smooth);
-    cursor: pointer;
-}
-
-.btn-primary {
-    background: #fff;
-    color: #000;
-}
-
-.btn-primary:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(255, 255, 255, 0.15);
-}
-
-.btn-outline {
-    background: transparent;
-    color: #fff;
-    border: 1px solid rgba(255, 255, 255, 0.15);
-}
-
-.btn-outline:hover {
-    border-color: var(--primary);
     color: var(--primary);
-    transform: translateY(-2px);
+    width: 100%;
 }
 
-/* Footer styling */
-#footer {
-    border-top: 1px solid rgba(255, 255, 255, 0.02);
-    padding: 50px 0;
-    position: relative;
-    z-index: 12;
-}
-
-.footer-inner {
-    max-width: 1300px;
-    margin: 0 auto;
-    padding: 0 40px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    font-size: 0.85rem;
-    color: var(--text-muted);
-}
-
-.footer-meta {
-    display: flex;
-    gap: 20px;
-}
-
-.footer-meta a {
-    color: inherit;
-    text-decoration: none;
-    transition: var(--transition-fast);
-}
-
-.footer-meta a:hover {
-    color: var(--primary);
-}
-
-/* Animation Reveal Triggers */
-.animate-on-scroll {
-    opacity: 0;
-    transform: translateY(20px);
-    transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.animate-on-scroll.appear {
-    opacity: 1;
-    transform: translateY(0);
-}
-
-/* Responsiveness Settings */
-@media (max-width: 1024px) {
-    .pillars-container {
-        grid-template-columns: 1fr;
-    }
-    .river-layout {
-        grid-template-columns: 1fr;
-        gap: 40px;
-    }
-}
-
-@media (max-width: 768px) {
-    .mountain-peaks-layout {
-        grid-template-columns: 1fr;
-    }
-    .greenhouse-grid {
-        grid-template-columns: 1fr;
-    }
-    .footer-inner {
-        flex-direction: column;
-        gap: 15px;
-        text-align: center;
-    }
-    #curiosity-compass {
-        display: none;
-    }
-    #ecosystem-hud {
-        left: 20px;
-        top: 20px;
-        scale: 0.9;
-    }
-}
-
-/* Glass Sitting Dialogue Card */
-.glass-dialog-card {
-    position: fixed;
-    left: 40px;
-    bottom: 40px;
-    width: 320px;
-    background: var(--glass-bg);
-    border: var(--border-glow);
-    border-radius: 16px;
-    padding: 24px;
-    z-index: 999;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
-    backdrop-filter: var(--glass-blur);
-    -webkit-backdrop-filter: var(--glass-blur);
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    transform: translateY(30px);
-    opacity: 0;
-    pointer-events: none;
-    transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.4s ease, border-color 0.3s ease;
-}
-
-.glass-dialog-card:hover {
-    border-color: var(--border-glow-active);
-}
-
-.glass-dialog-card.visible {
-    transform: translateY(0);
-    opacity: 1;
-    pointer-events: auto;
-}
-
-.dialog-close-btn {
+/* --- HELP TEXT WARNING --- */
+#help-text {
     position: absolute;
-    top: 12px;
-    right: 16px;
-    background: transparent;
-    border: none;
-    color: var(--text-muted);
-    font-size: 1.25rem;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    color: white;
+    z-index: 1000;
+    text-align: center;
+    background: rgba(10,10,18,0.85);
+    padding: 30px 40px;
+    border-radius: 16px;
+    border: 1px solid var(--glass-border);
+    backdrop-filter: blur(12px);
     cursor: pointer;
-    line-height: 1;
-    transition: var(--transition-fast);
+    box-shadow: 0 32px 64px rgba(0,0,0,0.7);
+    transition: opacity 0.3s, border-color 0.3s;
 }
 
-.dialog-close-btn:hover {
-    color: var(--secondary);
+#help-text:hover {
+    border-color: var(--glass-hover-border);
 }
 
-.dialog-label {
-    font-family: 'Fira Code', monospace;
-    font-size: 0.72rem;
-    color: var(--primary);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
+body.modal-open {
+    overflow: hidden;
+}
+
+/* --- NARRATOR SUBTITLE OVERLAY --- */
+#narrator-box {
+    position: fixed;
+    bottom: 95px; left: 50%;
+    transform: translateX(-50%);
+    z-index: 90;
+    background: rgba(8, 8, 12, 0.65);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-radius: 8px;
+    padding: 10px 24px;
+    width: 90%; max-width: 480px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.35);
+    pointer-events: none;
+    transition: opacity 0.4s ease, transform 0.4s ease;
+}
+
+#narrator-box.hidden {
+    opacity: 0;
+    transform: translateX(-50%) translateY(12px);
+    display: none !important;
+}
+
+#narrator-box:not(.hidden) {
+    display: flex !important;
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+}
+
+.narrator-pulse {
+    width: 6px; height: 6px;
+    background-color: #facc15;
+    border-radius: 50%;
+    box-shadow: 0 0 10px #facc15;
+    flex-shrink: 0;
+    animation: narratorSpark 1.6s infinite ease-in-out;
+}
+
+@keyframes narratorSpark {
+    0%, 100% { opacity: 0.35; transform: scale(0.9); }
+    50% { opacity: 1; transform: scale(1.2); }
+}
+
+#narrator-text {
+    font-family: var(--font-outfit);
+    font-size: 11px;
+    line-height: 1.5;
+    color: rgba(255, 255, 255, 0.85);
+    margin: 0;
+    letter-spacing: 0.5px;
+}
+
+/* --- CLIMATE TELEMETRY HUD (Top Right) --- */
+#climate-hud {
+    position: fixed;
+    top: 20px; right: 20px;
+    z-index: 100;
+    background: rgba(10, 10, 15, 0.45);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-radius: 8px;
+    padding: 10px 16px;
+    width: 170px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+    pointer-events: none;
+    animation: baroFadeIn 1s ease-out;
+}
+
+#climate-hud .hud-title {
+    font-size: 8px;
+    font-family: var(--font-fira);
+    color: rgba(255, 255, 255, 0.4);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    padding-bottom: 3px;
+    margin-bottom: 6px;
+    letter-spacing: 1px;
     font-weight: 600;
 }
 
-.dialog-quote {
-    font-size: 0.92rem;
-    color: var(--text-main);
-    line-height: 1.5;
-    font-style: italic;
+#climate-hud .climate-grid {
+    display: grid;
+    grid-template-cols: 1fr 1fr;
+    gap: 4px 10px;
+    font-family: var(--font-fira);
+    font-size: 9px;
+    color: rgba(255, 255, 255, 0.85);
 }
 
-.dialog-author {
-    font-size: 0.75rem;
-    color: var(--text-muted);
-    text-align: right;
-    margin-top: 4px;
+@keyframes baroFadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Wet Surface Sheen for Raining/Stormy Climate */
+.wet-sheen #base-image {
+    filter: saturate(1.15) brightness(0.72) contrast(1.15) drop-shadow(0px 0px 4px rgba(100, 200, 255, 0.15)) !important;
+}
+
+/* --- CINEMATIC FILM EFFECTS --- */
+#world::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 5;
+    pointer-events: none;
+    background: radial-gradient(circle, transparent 40%, rgba(0, 0, 0, 0.45) 100%);
+}
+
+.film-grain {
+    position: fixed;
+    inset: 0;
+    z-index: 99;
+    pointer-events: none;
+    background-image: radial-gradient(rgba(255, 255, 255, 0.015) 1px, transparent 0),
+                      radial-gradient(rgba(255, 255, 255, 0.01) 1.5px, transparent 0);
+    background-size: 8px 8px, 12px 12px;
+    background-position: 0 0, 4px 4px;
+    opacity: 0.3;
+}
+
+/* --- SEASONAL ATMOSPHERIC COLOR GRADING --- */
+.season-winter #base-image,
+.season-winter #tree-left-sway,
+.season-winter #tree-right-sway {
+    filter: hue-rotate(12deg) saturate(0.72) brightness(0.9) contrast(1.05) !important;
+}
+
+.season-autumn #base-image,
+.season-autumn #tree-left-sway,
+.season-autumn #tree-right-sway {
+    filter: sepia(0.24) saturate(1.15) hue-rotate(-12deg) brightness(0.92) contrast(1.02) !important;
+}
+
+.season-summer #base-image,
+.season-summer #tree-left-sway,
+.season-summer #tree-right-sway {
+    filter: saturate(1.22) brightness(1.06) contrast(1.02) !important;
+}
+
+.season-spring #base-image,
+.season-spring #tree-left-sway,
+.season-spring #tree-right-sway {
+    filter: none !important;
 }
