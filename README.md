@@ -1,50 +1,37 @@
-# 🍥 Ichiraku Ramen — Immersive Naruto Landing Page
+# 🌿 Sreeshanth Reddy Namireddy — Living Digital Ecosystem Portfolio
 
-An interactive, high-fidelity landing page for a Naruto-themed ramen shop featuring a dynamic nature landscape hero background, custom animations, stats counters, 3D cursor-tracking card hover, and responsive design.
-
-## 🚀 Features
-
-- **Animated Hero Section**: Integrates your custom generated nature background with a smooth Ken Burns pan-and-zoom animation, twinkling stars, fireflies, and a glowing moon.
-- **Ramen Shop Gallery**: Includes your exact Naruto ramen shop interior image wrapped in custom-designed corner accents and cyberpunk scanning animations with 3D cursor tilt effects.
-- **Floating Sakura Particles**: Programmatic falling cherry blossom petals drift across the screen.
-- **Auto-Counter Stats**: Counts up serving numbers dynamically as you scroll down.
-- **Reservation Submission**: Special celebration animations when the booking form is successfully filled.
-- **Deploy Ready**: Configured with a fallback asset loader so it works natively on local preview and GitHub Pages.
+An immersive, high-fidelity landing page website presenting Sreeshanth's personal operating manual as an AI Systems & Infrastructure Builder. Designed with cofounder.co inspired aesthetics, clean grid panels, live terminal emulators, and dynamic parallax backgrounds.
 
 ---
 
-## 🛠️ Setup & Local Hosting
+## 🚀 Key Features
 
-### 1. Copy Image Assets Locally
-To make this repository fully self-contained, open the Jupyter Notebook [run_server.ipynb](run_server.ipynb) and run the Python cell. This automatically copies the images from the workspace cache to the local `assets/` folder.
+* **3D Hero Card Stack**: Parallax canvas header tracking mouse coordinates with simulated 3D floating notification loops.
+* **VERI Dashboard mockup**: Implements an interactive live-updating web terminal that monitors and traces mock agent execution safety logs.
+* **Double Interactive CLI Consoles**:
+  - **Workbench Card**: Type `help` to inspect commands.
+  - **Closing Section**: Type `projects`, `about`, `skills`, or `contact` to see system operator files.
+* **Operator Panel Avatar**: Integrated avatar wrapper showing operator status details and horizontal green scan line loops.
+* **Self-Contained Dev server & Image scripts**: Batch runners bypass sandbox environment constraints.
+* **Deploy Ready**: Automated GitHub Actions Pages deployment pipeline.
 
-> **Note**: Even if you don't run the script, the website has built-in JavaScript fallbacks that will automatically display the correct images in your browser from local absolute caches!
+---
 
-### 2. View Locally
-Double-click `index.html` to open it in your browser.
+## 🛠️ Setup & Running
+
+### 1. Extract Assets & Starts Server
+To copy cached image assets and start the preview server on Windows:
+1. Double-click **`copy_assets.bat`** (copies files to `./assets/`).
+2. Double-click **`decode_image.bat`** (decodes base64 profile image to `./assets/profile.jpg`).
+3. Double-click **`run_server.bat`** (starts server on [http://localhost:8000](http://localhost:8000)).
+4. Open your browser and navigate to [http://localhost:8000](http://localhost:8000).
+
+*(Alternatively, you can run all the Python cells in **`run_server.ipynb`** using your notebook environment!)*
 
 ---
 
 ## 🌐 Deploy to GitHub Pages
 
-This repository is pre-configured with a GitHub Actions workflow to publish automatically:
-
-1. **Initialize Git and Commit**:
-   ```bash
-   git init
-   git add .
-   git commit -m "Initial commit of Ichiraku Ramen page"
-   ```
-
-2. **Push to GitHub**:
-   Create a repository on GitHub and link it:
-   ```bash
-   git remote add origin https://github.com/YOUR_USERNAME/YOUR_REPO_NAME.git
-   git branch -M main
-   git push -u origin main
-   ```
-
-3. **Enable GitHub Pages**:
-   - Go to your repository settings on GitHub.
-   - Go to the **Pages** tab.
-   - Under **Build and deployment > Source**, select **GitHub Actions** (the workflow will deploy automatically on every push to `main`!).
+To push to your repository (`https://github.com/veloura07/resume-fun-.git`):
+1. Double-click **`deploy_git.bat`**.
+2. Log in when prompted. The automated Actions runner (`.github/workflows/deploy.yml`) will automatically publish the website onto GitHub Pages!

@@ -512,21 +512,40 @@
     <section id="terminal-command" class="bg-[#F5F5F2] border-t border-black/5">
         <div class="section-container">
             <div class="terminal-closing-box">
-                <p class="closing-text">Still curious?</p>
-                <div class="interactive-command-area">
-                    <p class="prompt-instruction">Type commands in Sreeshanth's interactive console:</p>
-                    <div class="terminal-examples">
-                        <span class="tag-cmd">projects</span>
-                        <span class="tag-cmd">about</span>
-                        <span class="tag-cmd">skills</span>
-                        <span class="tag-cmd">contact</span>
-                        <span class="tag-cmd">clear</span>
+                <div class="terminal-closing-inner">
+                    <!-- Operator Profile Card -->
+                    <div class="operator-profile-card">
+                        <div class="operator-avatar-wrapper">
+                            <img src="assets/profile.jpg" alt="Sreeshanth Reddy Namireddy" class="operator-avatar">
+                            <div class="avatar-scanner-line"></div>
+                        </div>
+                        <div class="operator-meta">
+                            <span class="operator-title">SYSTEM OPERATOR</span>
+                            <h4 class="operator-name">Sreeshanth Reddy</h4>
+                            <div class="operator-status">
+                                <span class="status-indicator-dot"></span>
+                                <span class="status-indicator-text">Kernel Space Online</span>
+                            </div>
+                        </div>
                     </div>
-                    <div class="standalone-terminal-line">
-                        <span class="pulse-caret">$</span>
-                        <input type="text" class="standalone-terminal-input" placeholder="Type a command..." autocomplete="off" spellcheck="false">
+
+                    <!-- Interactive Command Area -->
+                    <div class="interactive-command-area">
+                        <p class="closing-text">Still curious?</p>
+                        <p class="prompt-instruction">Type commands in Sreeshanth's interactive console:</p>
+                        <div class="terminal-examples">
+                            <span class="tag-cmd">projects</span>
+                            <span class="tag-cmd">about</span>
+                            <span class="tag-cmd">skills</span>
+                            <span class="tag-cmd">contact</span>
+                            <span class="tag-cmd">clear</span>
+                        </div>
+                        <div class="standalone-terminal-line">
+                            <span class="pulse-caret">$</span>
+                            <input type="text" class="standalone-terminal-input" placeholder="Type a command..." autocomplete="off" spellcheck="false">
+                        </div>
+                        <div class="standalone-terminal-result"></div>
                     </div>
-                    <div class="standalone-terminal-result"></div>
                 </div>
             </div>
         </div>
